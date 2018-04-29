@@ -49,7 +49,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     StartTime = Timer
     
     'Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
-    Call CreateCustomProperties2(TargetDocument, PropertyName, PropertyValue)
+    Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
     
     Debug.Print "Elapsed time: " & Timer - StartTime
 
