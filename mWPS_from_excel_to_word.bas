@@ -10,7 +10,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim PropertyName As Collection
     Dim PropertyValue As Collection
     Dim TargetDocument As Object
-    Dim TargetApplication As Object
+    Dim WordApp As Object
     Dim TargetDocumentPath As String
     Dim StartTime
         
@@ -30,8 +30,9 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     For Each MyCell In MyRow.Cells
         PropertyValue.Add Item:=MyCell.Text, key:=MyTable.HeaderRowRange.Columns(MyCell.Column).Text
     Next
-        
-    Set TargetApplication = CreateObject("Word.Application")
+    
+    'Crea un oggetto Applicazione di Word
+    Set WordApp = CreateObject("Word.Application")
     
     'Seleziona il file di destinazione
     With Application.FileDialog(msoFileDialogOpen)
@@ -40,17 +41,41 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         TargetDocumentPath = .SelectedItems(1)
     End With
     
-    TargetApplication.documents.Open Filename:=TargetDocumentPath, ReadOnly:=False
+    WordApp.documents.Open FileName:=TargetDocumentPath, ReadOnly:=False
     
-    TargetApplication.Visible = True
+    WordApp.Visible = True
     
-    Set TargetDocument = TargetApplication.activedocument
+    Set TargetDocument = WordApp.ActiveDocument
     
     StartTime = Timer
     
     'Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
     Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
     
+    TargetDocument.Fields.Update
+    
     Debug.Print "Elapsed time: " & Timer - StartTime
-
+    
+    'Esporta il file in pdf:
+    'Attenzione: perchè funzionino le costanti di Word bisogna aggiungere
+    'ai riferimenti la libreria "Microsoft Word x.x Object Library"
+    Dim FileNamePdfExport As String
+    Dim MyAnswer As Variant
+    
+    MyAnswer = MsgBox("Vuoi salvare il documento in pdf?", vbYesNo)
+    
+    If MyAnswer = vbYes Then
+        FileNamePdfExport = Replace(TargetDocument.FullName, TargetDocument.Name, "") & _
+            Replace("WPS_" & PropertyValue("wps_number") & "_rev" & PropertyValue("wps_rev") & ".pdf", _
+                    "/", "-")
+        
+        TargetDocument.ExportAsFixedFormat OutputFileName:= _
+            FileNamePdfExport, _
+            ExportFormat:=wdExportFormatPDF, OpenAfterExport:=False, OptimizeFor:= _
+            wdExportOptimizeForPrint, Range:=wdExportAllDocument, Item:= _
+            wdExportDocumentContent, IncludeDocProps:=False, KeepIRM:=True, _
+            CreateBookmarks:=wdExportCreateNoBookmarks, DocStructureTags:=True, _
+            BitmapMissingFonts:=True, UseISO19005_1:=False
+    End If
+    
 End Sub
