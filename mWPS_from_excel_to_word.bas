@@ -13,6 +13,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim WordApp As Object
     Dim TargetDocumentPath As String
     Dim StartTime
+    Dim MyCellText As String
         
     Set MySheet = ActiveWorkbook.Worksheets("WPS")
     
@@ -21,7 +22,11 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     ' Legge le intestazioni di colonna della tabella e le mette in un array
     Set PropertyName = New Collection
     For Each MyCell In MyTable.HeaderRowRange.Cells
-     PropertyName.Add MyCell.Text
+     MyCellText = MyCell.Text
+     'Esclude i campi che iniziano con "_" (underscore)
+     If InStr(1, MyCellText, "_") <> 1 Then
+        PropertyName.Add MyCell.Text
+     End If
     Next
     
     Set PropertyValue = New Collection
@@ -52,7 +57,17 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
     Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
     
-    TargetDocument.Fields.Update
+    'Inserisce l'immagine mediante un content control di tipo Picture
+    Dim cc As ContentControl
+    Set cc = TargetDocument.ContentControls(1)
+    If cc.Type = wdContentControlPicture Then
+    If cc.Range.InlineShapes.Count > 0 Then
+    cc.Range.InlineShapes(1).Delete
+    End If
+    TargetDocument.InlineShapes.AddPicture _
+        FileName:=PropertyValue("joint_sketch_file"), _
+        linktofile:=False, Range:=cc.Range
+    End If
     
     Debug.Print "Elapsed time: " & Timer - StartTime
     
