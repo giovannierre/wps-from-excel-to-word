@@ -12,7 +12,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim TargetDocument As Object
     Dim TargetApplication As Object
     Dim TargetDocumentPath As String
-    
+    Dim StartTime
+        
     Set MySheet = ActiveWorkbook.Worksheets("WPS")
     
     Set MyTable = MySheet.ListObjects(1)
@@ -27,7 +28,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Set MyRow = MyTable.Range.Rows(ActiveCell.Row - MyTable.Range.Row + 1)
     
     For Each MyCell In MyRow.Cells
-        PropertyValue.Add Item:=MyCell.Text, Key:=MyTable.HeaderRowRange.Columns(MyCell.Column).Text
+        PropertyValue.Add Item:=MyCell.Text, key:=MyTable.HeaderRowRange.Columns(MyCell.Column).Text
     Next
         
     Set TargetApplication = CreateObject("Word.Application")
@@ -45,6 +46,11 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     
     Set TargetDocument = TargetApplication.activedocument
     
-    Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
+    StartTime = Timer
+    
+    'Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
+    Call CreateCustomProperties2(TargetDocument, PropertyName, PropertyValue)
+    
+    Debug.Print "Elapsed time: " & Timer - StartTime
 
 End Sub

@@ -31,3 +31,13 @@ Public Function IsInArray2(stringToBeFound As String, arr As Variant) As Boolean
     IsInArray2 = (UBound(Filter(arr, stringToBeFound)) > -1)
 
 End Function
+
+Public Function IsInCollection(col As Collection, ByVal key As String) As Boolean
+
+On Error GoTo incol
+col.Item key
+
+incol:
+IsInCollection = (Err.Number = 0)
+
+End Function

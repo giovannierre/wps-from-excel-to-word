@@ -11,28 +11,37 @@ Dim PropertyList As String
 Dim p As Variant
 Dim i As Integer
 Dim MyMsg
+Dim ExistingProperties As Collection
 
-'On Error Resume Next
+On Error GoTo ErrHandler
 
 ReDim AddedProperty(1 To 1) As Variant
 
+'Crea una collection delle proprietà esistenti nel documento per decidere se scrivere
+'solo il valore o se creare la nuova proprietà
+Set ExistingProperties = New Collection
+For Each p In TargetDocument.CustomDocumentProperties
+    ExistingProperties.Add key:=p.Name, Item:=1
+Next p
+
 For Each p In PropertyName
- 
- If Not PropertyExists(TargetDocument, p) Then
+ If IsInCollection(ExistingProperties, p) Then
+    TargetDocument.CustomDocumentProperties(p).Value = PropertyValue(p)
+  Else
     TargetDocument.CustomDocumentProperties.Add _
         Name:=p, _
         LinkToContent:=False, _
         Type:=msoPropertyTypeString, _
         Value:=PropertyValue(p)
-    AddedProperty(UBound(AddedProperty)) = p
-    ReDim Preserve AddedProperty(1 To (UBound(AddedProperty) + 1))
-  Else
-    TargetDocument.CustomDocumentProperties(p).Value = PropertyValue(p)
+    If ShowPropertyList Then
+        AddedProperty(UBound(AddedProperty)) = p
+        ReDim Preserve AddedProperty(1 To (UBound(AddedProperty) + 1))
+    End If
  End If
  
 Next p
 
-If ShowPropertyList = True Then
+If ShowPropertyList Then
     MyMsg = ""
     For Each Property In TargetDocument.CustomDocumentProperties
      PropertyList = PropertyList & vbCrLf & IIf(ValueInArray(Property.Name, AddedProperty), "*", " ") & Property.Name
@@ -42,6 +51,11 @@ If ShowPropertyList = True Then
     
     MsgBox MyMsg & vbCrLf & PropertyList
 End If
+
+Exit Sub
+
+ErrHandler:
+    MsgBox "An error occured in sub 'CreateCustomeProperties': " & Err.Description & " (" & Err.Number & ")"
 
 End Sub
 Function PropertyExists(TargetDocument As Variant, ByVal PropertyName As String) As Boolean
