@@ -1,5 +1,6 @@
 Attribute VB_Name = "mWPS_from_excel_to_word"
 Option Explicit
+Global UserFormUpdaterRow As Integer
 
 Sub read_wps_data()
 Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
@@ -33,9 +34,10 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Set MyRow = MyTable.Range.Rows(ActiveCell.Row - MyTable.Range.Row + 1)
     
     For Each MyCell In MyRow.Cells
-        PropertyValue.Add Item:=MyCell.Text, key:=MyTable.HeaderRowRange.Columns(MyCell.Column).Text
+        PropertyValue.Add key:=MyTable.HeaderRowRange.Columns(MyCell.Column).Text, _
+                          Item:=Replace(MyCell.Text, Chr(10), Chr(13)) 'la sostituzione serve per fare andare a capo correttamente word
     Next
-    
+        
     'Crea un oggetto Applicazione di Word
     Set WordApp = CreateObject("Word.Application")
     
@@ -69,6 +71,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         linktofile:=False, Range:=cc.Range
     End If
     
+    TargetDocument.Fields.Update
+    
     Debug.Print "Elapsed time: " & Timer - StartTime
     
     'Esporta il file in pdf:
@@ -93,4 +97,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
             BitmapMissingFonts:=True, UseISO19005_1:=False
     End If
     
+End Sub
+
+Sub ShowUserForm()
+    UserForm1.Show vbModeless
 End Sub
