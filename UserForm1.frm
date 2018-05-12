@@ -20,12 +20,15 @@ Option Explicit
 Private Sub cmdUpdate_Click()
     Dim MyTable As Excel.ListObject
     Dim MyTableHeaderRange As Range
+    Dim MySheet As Excel.Worksheet
     Dim MyRow As Range
     Dim ImageFilePath As String
     Dim MyCell As Range
     
+    On Error GoTo ErrHandler
     
-    Set MyTable = ActiveSheet.ListObjects(1)
+    Set MySheet = ActiveSheet
+    Set MyTable = MySheet.ListObjects(1)
     Set MyTableHeaderRange = MyTable.HeaderRowRange
     
     Set MyRow = MyTable.Range.Rows(ActiveCell.Row - MyTable.Range.Row + 1)
@@ -33,7 +36,12 @@ Private Sub cmdUpdate_Click()
     ImageFilePath = ""
     For Each MyCell In MyTableHeaderRange.Cells
         If MyCell.Text = "joint_sketch_file" Then
-         ImageFilePath = MyRow.Columns(MyCell.Column).Text
+            ImageFilePath = MyRow.Columns(MyCell.Column).Text
+            'Se la cella "joint_sketch_file" contiene i ":" (due punti) significa che è indicato il percorso completo
+            'e si tiene buono quello, altrimenti si aggiunge il path specificato nella cella "ImagePath"
+            If InStr(1, ImageFilePath, ":", vbTextCompare) < 1 Then
+                ImageFilePath = MySheet.Range("ImagePath").Text & ImageFilePath
+            End If
          GoTo Proceed
         End If
     Next
@@ -50,12 +58,23 @@ Proceed:
     
     UserFormUpdaterRow = MyRow.Row
 
+MyExit:
+    Exit Sub
+
+ErrHandler:
+    Select Case Err
+        Case 53
+            MsgBox "Nome di file non valido, verificare" & vbCrLf & _
+            "Nome completo rilevato: " & ImageFilePath
+        Case Else
+            MsgBox "Ops, si è verificato un errore." & vbCrLf & "Error n." & Err.Number & ": " & Err.Description
+    End Select
+    Err.Clear
+    Resume MyExit
+    
 End Sub
 
 Private Sub UserForm_Activate()
     Call cmdUpdate_Click
 End Sub
 
-Private Sub UserForm_Click()
-
-End Sub

@@ -61,14 +61,23 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     
     'Inserisce l'immagine mediante un content control di tipo Picture
     Dim cc As ContentControl
+    Dim ImageFilePath As String
+    
+    'Se la cella "joint_sketch_file" contiene i ":" (due punti) significa che è indicato il percorso completo
+    'e si tiene buono quello, altrimenti si aggiunge il path specificato nella cella "ImagePath"
+    ImageFilePath = PropertyValue("joint_sketch_file")
+    If InStr(1, ImageFilePath, ":") < 1 Then
+        ImageFilePath = MySheet.Range("ImagePath").Text & ImageFilePath
+    End If
+    
     Set cc = TargetDocument.ContentControls(1)
     If cc.Type = wdContentControlPicture Then
-    If cc.Range.InlineShapes.Count > 0 Then
-    cc.Range.InlineShapes(1).Delete
-    End If
-    TargetDocument.InlineShapes.AddPicture _
-        FileName:=PropertyValue("joint_sketch_file"), _
-        linktofile:=False, Range:=cc.Range
+        If cc.Range.InlineShapes.Count > 0 Then
+            cc.Range.InlineShapes(1).Delete
+        End If
+        TargetDocument.InlineShapes.AddPicture _
+            FileName:=ImageFilePath, _
+            linktofile:=False, Range:=cc.Range
     End If
     
     TargetDocument.Fields.Update
