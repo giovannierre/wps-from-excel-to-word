@@ -15,6 +15,13 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim TargetDocumentPath As String
     Dim StartTime
     Dim MyCellText As String
+    Dim IMAGE_HEIGHT, IMAGE_WIDTH As Single
+    
+    '****SETTINGS****
+    'Dimensioni massime immagine giunto
+    IMAGE_HEIGHT = 3.5
+    IMAGE_WIDTH = 8.3
+    
         
     Set MySheet = ActiveWorkbook.Worksheets("WPS")
     
@@ -44,6 +51,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'Seleziona il file di destinazione
     With Application.FileDialog(msoFileDialogOpen)
         .AllowMultiSelect = False
+        .InitialFileName = ActiveWorkbook.Path & Application.PathSeparator
         .Show
         TargetDocumentPath = .SelectedItems(1)
     End With
@@ -56,7 +64,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     
     StartTime = Timer
     
-    'Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
+    'Inserisce i valori nel file di Word, attraverso la creazione (se serve) e popolamento
+    'delle CustomProperties
     Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
     
     'Inserisce l'immagine mediante un content control di tipo Picture
@@ -78,6 +87,22 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         TargetDocument.InlineShapes.AddPicture _
             FileName:=ImageFilePath, _
             linktofile:=False, Range:=cc.Range
+        
+        'Riconsidera l'oggetto per ridimensionarlo:
+        Set cc = TargetDocument.ContentControls(1)
+        
+        Dim DesiredHeight, DesiredWidth As Single
+        Dim FactorH, FactorW, Factor As Single
+        
+        DesiredHeight = Application.CentimetersToPoints(IMAGE_HEIGHT)
+        DesiredWidth = Application.CentimetersToPoints(IMAGE_WIDTH)
+        With cc.Range.InlineShapes(1)
+            FactorH = DesiredHeight / .Height
+            FactorW = DesiredWidth / .Width
+            Factor = IIf(FactorH < FactorW, FactorH, FactorW)
+            .Height = .Height * Factor
+            .Width = .Width * Factor
+        End With
     End If
     
     TargetDocument.Fields.Update
