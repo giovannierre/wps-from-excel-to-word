@@ -17,6 +17,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim MyCellText As String
     Dim IMAGE_HEIGHT, IMAGE_WIDTH As Single
     
+    On Error GoTo ErrHandler
+    
     '****SETTINGS****
     'Dimensioni massime immagine giunto
     IMAGE_HEIGHT = 3.5
@@ -48,16 +50,26 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'Crea un oggetto Applicazione di Word
     Set WordApp = CreateObject("Word.Application")
     
-    'Seleziona il file di destinazione
-    With Application.FileDialog(msoFileDialogOpen)
-        .AllowMultiSelect = False
-        .InitialFileName = ActiveWorkbook.Path & Application.PathSeparator
-        .Show
-        TargetDocumentPath = .SelectedItems(1)
-    End With
-    
-    WordApp.documents.Open FileName:=TargetDocumentPath, ReadOnly:=False
-    
+    'Seleziona il file di template dalla cella "TemplateFullPath" oppure, se vuoto, lo fa scegliere all'utente
+    TargetDocumentPath = MySheet.Range("TemplateFullPath")
+    If TargetDocumentPath = "" Then
+        With Application.FileDialog(msoFileDialogOpen)
+            .AllowMultiSelect = False
+            .InitialFileName = ActiveWorkbook.Path & Application.PathSeparator
+            .Show
+            TargetDocumentPath = .SelectedItems(1)
+        End With
+    End If
+       
+    'Apre il file non è già aperto
+    'NB: usa una funzione ausiliaria che non è built-in ma si trova in un altro modulo (copiata da sito MS)
+    If Not IsFileOpen(TargetDocumentPath) Then
+            WordApp.documents.Open filename:=TargetDocumentPath, ReadOnly:=False
+        Else
+            Set WordApp = GetObject(TargetDocumentPath).Application
+    End If
+    'Debug.Print WordApp.documents(0).Name
+    WordApp.documents(TargetDocumentPath).Activate
     WordApp.Visible = True
     
     Set TargetDocument = WordApp.ActiveDocument
@@ -85,7 +97,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
             cc.Range.InlineShapes(1).Delete
         End If
         TargetDocument.InlineShapes.AddPicture _
-            FileName:=ImageFilePath, _
+            filename:=ImageFilePath, _
             linktofile:=False, Range:=cc.Range
         
         'Riconsidera l'oggetto per ridimensionarlo:
@@ -130,7 +142,15 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
             CreateBookmarks:=wdExportCreateNoBookmarks, DocStructureTags:=True, _
             BitmapMissingFonts:=True, UseISO19005_1:=False
     End If
+
+MyExit:
+    Exit Sub
     
+ErrHandler:
+    MsgBox "Ops, si è verifcato un errore!" & vbCrLf & _
+           "Err. n." & Err.Number & ": " & Err.Description
+    Resume MyExit
+
 End Sub
 
 Sub ShowUserForm()
