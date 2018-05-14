@@ -16,6 +16,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim StartTime
     Dim MyCellText As String
     Dim IMAGE_HEIGHT, IMAGE_WIDTH As Single
+    Dim FileNamePdfExport As String
+    Dim MyAnswer As Variant
     
     On Error GoTo ErrHandler
     
@@ -124,15 +126,19 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'Esporta il file in pdf:
     'Attenzione: perchè funzionino le costanti di Word bisogna aggiungere
     'ai riferimenti la libreria "Microsoft Word x.x Object Library"
-    Dim FileNamePdfExport As String
-    Dim MyAnswer As Variant
+
     
     MyAnswer = MsgBox("Vuoi salvare il documento in pdf?", vbYesNo)
     
     If MyAnswer = vbYes Then
-        FileNamePdfExport = Replace(TargetDocument.FullName, TargetDocument.Name, "") & _
-            Replace("WPS_" & PropertyValue("wps_number") & "_rev" & PropertyValue("wps_rev") & ".pdf", _
-                    "/", "-")
+        FileNamePdfExport = MySheet.Range("SavePdfPath")
+        If FileNamePdfExport = "" Then
+            FileNamePdfExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
+
+        End If
+        FileNamePdfExport = FileNamePdfExport & _
+                            Replace("WPS_" & PropertyValue("wps_number") & "_rev" & PropertyValue("wps_rev") & ".pdf", _
+                            "/", "-")
         
         TargetDocument.ExportAsFixedFormat OutputFileName:= _
             FileNamePdfExport, _
