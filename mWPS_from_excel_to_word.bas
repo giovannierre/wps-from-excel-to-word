@@ -16,8 +16,9 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim StartTime
     Dim MyCellText As String
     Dim IMAGE_HEIGHT, IMAGE_WIDTH As Single
-    Dim FileNamePdfExport As String
+    Dim FileNameExport As String
     Dim MyAnswer As Variant
+    Dim fld As Variant
     
     On Error GoTo ErrHandler
     
@@ -66,7 +67,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'Apre il file non è già aperto
     'NB: usa una funzione ausiliaria che non è built-in ma si trova in un altro modulo (copiata da sito MS)
     If Not IsFileOpen(TargetDocumentPath) Then
-            WordApp.documents.Open filename:=TargetDocumentPath, ReadOnly:=False
+            WordApp.documents.Open FileName:=TargetDocumentPath, ReadOnly:=True
         Else
             Set WordApp = GetObject(TargetDocumentPath).Application
     End If
@@ -99,7 +100,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
             cc.Range.InlineShapes(1).Delete
         End If
         TargetDocument.InlineShapes.AddPicture _
-            filename:=ImageFilePath, _
+            FileName:=ImageFilePath, _
             linktofile:=False, Range:=cc.Range
         
         'Riconsidera l'oggetto per ridimensionarlo:
@@ -126,28 +127,43 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'Esporta il file in pdf:
     'Attenzione: perchè funzionino le costanti di Word bisogna aggiungere
     'ai riferimenti la libreria "Microsoft Word x.x Object Library"
-
+    Dim FileName As String
     
-    MyAnswer = MsgBox("Vuoi salvare il documento in pdf?", vbYesNo)
-    
-    If MyAnswer = vbYes Then
-        FileNamePdfExport = MySheet.Range("SavePdfPath")
-        If FileNamePdfExport = "" Then
-            FileNamePdfExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
-
-        End If
-        FileNamePdfExport = FileNamePdfExport & _
-                            Replace("WPS_" & PropertyValue("wps_number") & "_rev" & PropertyValue("wps_rev") & ".pdf", _
+    'Definisce il nome del file con numero e revisione della WPS
+    FileName = Replace("WPS_" & PropertyValue("wps_number") & "_rev" & PropertyValue("wps_rev"), _
                             "/", "-")
+    'Cerca un percorso di default memorizzato nel foglio
+    FileNameExport = MySheet.Range("SavePdfPath")
+        'Se non è specificato un percorso, allora utilizza il percorso del template
+        If FileNameExport = "" Then
+            FileNameExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
+        End If
+        FileNameExport = FileNameExport & FileName
+    
+    'Chiede se salvare o no il file pdf
+    MyAnswer = MsgBox("Vuoi salvare il documento in pdf?", vbYesNo)
         
+    If MyAnswer = vbYes Then
         TargetDocument.ExportAsFixedFormat OutputFileName:= _
-            FileNamePdfExport, _
+            FileNameExport & ".pdf", _
             ExportFormat:=wdExportFormatPDF, OpenAfterExport:=False, OptimizeFor:= _
             wdExportOptimizeForPrint, Range:=wdExportAllDocument, Item:= _
             wdExportDocumentContent, IncludeDocProps:=False, KeepIRM:=True, _
             CreateBookmarks:=wdExportCreateNoBookmarks, DocStructureTags:=True, _
             BitmapMissingFonts:=True, UseISO19005_1:=False
     End If
+    
+    MyAnswer = MsgBox("Vuoi appiattire e salvare il documento Word?", vbYesNo)
+    
+    If MyAnswer = vbYes Then
+        'Appiattisce i codici di campo
+        For Each fld In TargetDocument.Fields
+            fld.Unlink
+        Next
+        Set fld = Nothing
+        TargetDocument.SaveAs2 FileName:=FileNameExport & ".docx", FileFormat:=wdFormatXMLDocument
+    End If
+    
 
 MyExit:
     Exit Sub
