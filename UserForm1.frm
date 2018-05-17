@@ -17,7 +17,39 @@ Option Explicit
 
 
 
-Private Sub cmdUpdate_Click()
+Private Sub CheckBox1_Click()
+
+End Sub
+
+Private Sub chkAutomaticUpdate_Change()
+    
+    Dim MyAnswer As Variant
+    
+    'Chiede conferma all'utente e se non c'è conferma esce dalla routine
+    If chkAutomaticUpdate Then
+        MyAnswer = MsgBox("Attenzione! L'update automatico dell'immagine può rallentare notevolmente la funzionalità " & _
+                          "del foglio, preseguire?", vbYesNo)
+        If MyAnswer = vbNo Then
+            chkAutomaticUpdate = False
+            GoTo MyExit
+        End If
+    End If
+    
+    If chkAutomaticUpdate Then
+        chkAutomaticUpdate.BackColor = vbRed
+        cmdUpdate.Enabled = False
+    Else
+        chkAutomaticUpdate.BackColor = &H8000000F
+        cmdUpdate.Enabled = True
+    
+    End If
+
+MyExit:
+    Exit Sub
+                         
+End Sub
+
+Public Sub cmdUpdate_Click()
     Dim MyTable As Excel.ListObject
     Dim MyTableHeaderRange As Range
     Dim MySheet As Excel.Worksheet

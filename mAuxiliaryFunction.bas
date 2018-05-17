@@ -68,14 +68,14 @@ Public Function SplitCellContent(CellContent As String, Delimiter As String, Pos
     
 End Function
 
-Function IsFileOpen(filename As String)
+Function IsFileOpen(FileName As String)
 'Copiata pari pari da: https://support.microsoft.com/it-it/help/291295/macro-code-to-check-whether-a-file-is-already-open
     Dim filenum As Integer, errnum As Integer
 
     On Error Resume Next   ' Turn error checking off.
     filenum = FreeFile()   ' Get a free file number.
     ' Attempt to open the file and lock it.
-    Open filename For Input Lock Read As #filenum
+    Open FileName For Input Lock Read As #filenum
     Close filenum          ' Close the file.
     errnum = Err           ' Save the error number that occurred.
     On Error GoTo 0        ' Turn error checking back on.
