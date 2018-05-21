@@ -16,7 +16,6 @@ Attribute VB_Exposed = False
 Option Explicit
 
 
-
 Private Sub CheckBox1_Click()
 
 End Sub
@@ -50,33 +49,68 @@ MyExit:
 End Sub
 
 Public Sub cmdUpdate_Click()
-    Dim MyTable As Excel.ListObject
+    Dim MyTable As Object
     Dim MyTableHeaderRange As Range
     Dim MySheet As Excel.Worksheet
     Dim MyRow As Range
     Dim ImageFilePath As String
     Dim MyCell As Range
+    Dim IsPivot As Boolean
+    Dim IMAGE_PATH_FIELD As String
+    Dim vf As Variant 'vf= visible field (per tabella pivot)
     
     On Error GoTo ErrHandler
     
+    IMAGE_PATH_FIELD = "joint_sketch_file"
+    IsPivot = False
+    
     Set MySheet = ActiveSheet
-    Set MyTable = MySheet.ListObjects(1)
-    Set MyTableHeaderRange = MyTable.HeaderRowRange
     
-    Set MyRow = MyTable.Range.Rows(ActiveCell.Row - MyTable.Range.Row + 1)
+    'Verifica se nel foglio c'è una tabella Pivot, nel caso farà riferimento a questa
+    If MySheet.PivotTables.Count > 0 Then IsPivot = True
     
-    ImageFilePath = ""
-    For Each MyCell In MyTableHeaderRange.Cells
-        If MyCell.Text = "joint_sketch_file" Then
-            ImageFilePath = MyRow.Columns(MyCell.Column).Text
-            'Se la cella "joint_sketch_file" contiene i ":" (due punti) significa che è indicato il percorso completo
-            'e si tiene buono quello, altrimenti si aggiunge il path specificato nella cella "ImagePath"
-            If InStr(1, ImageFilePath, ":", vbTextCompare) < 1 Then
-                ImageFilePath = MySheet.Range("ImagePath").Text & ImageFilePath
+'GESTISCE IN MODO SEPARATO IL CASO DI TABELLA PIVOT O TABELLA
+Select Case IsPivot
+    'Caso di tabella (oggetto ListObject)
+    Case False
+        Set MyTable = MySheet.ListObjects(1)
+        Set MyTableHeaderRange = MyTable.HeaderRowRange
+            
+        Set MyRow = MyTable.Range.Rows(ActiveCell.Row - MyTable.Range.Row + 1)
+        
+        ImageFilePath = ""
+        For Each MyCell In MyTableHeaderRange.Cells
+            If MyCell.Text = IMAGE_PATH_FIELD Then
+                ImageFilePath = MyRow.Columns(MyCell.Column).Text
+                'Se la cella "joint_sketch_file" contiene i ":" (due punti) significa che è indicato il percorso completo
+                'e si tiene buono quello, altrimenti si aggiunge il path specificato nella cella "ImagePath"
+                If InStr(1, ImageFilePath, ":", vbTextCompare) < 1 Then
+                    ImageFilePath = MySheet.Range("ImagePath").Text & ImageFilePath
+                End If
+             GoTo Proceed
             End If
-         GoTo Proceed
+        Next
+    
+    'Caso di tabella pivot (oggetto PivotTable):
+    Case True
+        Set MyTable = MySheet.PivotTables(1)
+        
+        If Not PivotFieldIsVisible(MyTable, IMAGE_PATH_FIELD) Then
+            MsgBox "Necessario visualizzare il campo '" & IMAGE_PATH_FIELD & "' per attivare la funzione!"
+            Exit Sub
         End If
-    Next
+               
+        Set MyTableHeaderRange = MyTable.PivotFields(IMAGE_PATH_FIELD).LabelRange
+        Set MyRow = MyTable.PivotFields(IMAGE_PATH_FIELD).DataRange.Rows(ActiveCell.Row - MyTableHeaderRange.Row)
+        ImageFilePath = MyRow.Cells(1, 1).Text
+        'Se la cella "joint_sketch_file" contiene i ":" (due punti) significa che è indicato il percorso completo
+        'e si tiene buono quello, altrimenti si aggiunge il path specificato nella cella "ImagePath"
+        If InStr(1, ImageFilePath, ":", vbTextCompare) < 1 Then
+            ImageFilePath = MySheet.Range("PivotImagePath").Text & ImageFilePath
+        End If
+        GoTo Proceed
+        
+End Select
 
 Proceed:
     'MsgBox "ImageFilePath= " & ImageFilePath
