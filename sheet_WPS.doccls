@@ -2,26 +2,6 @@
 
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
     
-    On Error GoTo ErrHandler
-    
-    'Se non è selezionato l'update continuo, allora evidenzia con il colore
-    'il fatto che l'immagine mostrata corrisponda a quella delle riga selezionata
-    If Not UserForm1.chkAutomaticUpdate Then
-        If Target.Row = UserFormUpdaterRow Then
-            UserForm1.BackColor = vbGreen
-        Else
-            UserForm1.BackColor = vbRed
-        End If
-    Else
-    'Altrimenti se è selezionato l'update continuo, allora chiama la procedura di update
-    'dello userform1
-        Call UserForm1.cmdUpdate_Click
-    End If
-
-Exit Sub
-
-ErrHandler:
-    MsgBox "Ops! Si è verificato un errore nella routine 'SelectionChange' del foglio" & vbCrLf & _
-            "Err. n." & Err.Number & ": " & Err.Description
+    Call UpdateUserForm1(Target)
 
 End Sub
