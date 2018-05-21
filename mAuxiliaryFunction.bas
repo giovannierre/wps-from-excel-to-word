@@ -99,3 +99,17 @@ Function IsFileOpen(FileName As String)
     End Select
 
 End Function
+
+Function PivotFieldIsVisible(pt As Excel.PivotTable, FieldName As String) As Boolean
+    
+    On Error GoTo ErrHandler
+    
+    Debug.Print pt.PivotFields(FieldName).LabelRange.Address
+    PivotFieldIsVisible = True
+    Exit Function
+    
+ErrHandler:
+    PivotFieldIsVisible = False
+    Err.Clear
+    
+End Function
