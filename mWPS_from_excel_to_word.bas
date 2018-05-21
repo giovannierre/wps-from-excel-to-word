@@ -2,6 +2,7 @@ Attribute VB_Name = "mWPS_from_excel_to_word"
 Option Explicit
 Global UserFormUpdaterRow As Integer
 
+
 Sub read_wps_data()
 Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
 
@@ -177,4 +178,30 @@ End Sub
 
 Sub ShowUserForm()
     UserForm1.Show vbModeless
+End Sub
+
+Sub UpdateUserForm1(CurrentSelection As Range)
+    
+    On Error GoTo ErrHandler
+    
+    'Se non è selezionato l'update continuo, allora evidenzia con il colore
+    'il fatto che l'immagine mostrata corrisponda a quella delle riga selezionata
+    If Not UserForm1.chkAutomaticUpdate Then
+        If CurrentSelection.Row = UserFormUpdaterRow Then
+            UserForm1.BackColor = vbGreen
+        Else
+            UserForm1.BackColor = vbRed
+        End If
+    Else
+    'Altrimenti se è selezionato l'update continuo, allora chiama la procedura di update
+    'dello userform1
+        Call UserForm1.cmdUpdate_Click
+    End If
+
+Exit Sub
+
+ErrHandler:
+    MsgBox "Ops! Si è verificato un errore nella routine 'SelectionChange' del foglio" & vbCrLf & _
+            "Err. n." & Err.Number & ": " & Err.Description
+
 End Sub
