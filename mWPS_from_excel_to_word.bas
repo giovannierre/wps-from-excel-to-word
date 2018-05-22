@@ -20,13 +20,25 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim FileNameExport As String
     Dim MyAnswer As Variant
     Dim fld As Variant
+    Dim NAMED_CELL_FOR_IMAGE_PATH, _
+        NAMED_CELL_FOR_TEMPLATE_PATH, _
+        NAMED_CELL_FOR_EXPORT_PATH As String
+    
+    Dim TABLE_FIELD_FOR_IMAGE_FILENAME As String
     
     On Error GoTo ErrHandler
     
     '****SETTINGS****
-    'Dimensioni massime immagine giunto
+    'Dimensioni massime immagine giunto, in cm
     IMAGE_HEIGHT = 3.5
     IMAGE_WIDTH = 8.3
+    'Nomi delle cella che contengono i percorsi dei vari file:
+    NAMED_CELL_FOR_IMAGE_PATH = "ImagePath"
+    NAMED_CELL_FOR_TEMPLATE_PATH = "TemplateFullPath"
+    NAMED_CELL_FOR_EXPORT_PATH = "SavePdfPath"
+    'Nomi di alcuni campi "speciali":
+    TABLE_FIELD_FOR_IMAGE_FILENAME = "joint_sketch_file"
+    
     
         
     Set MySheet = ActiveWorkbook.Worksheets("WPS")
@@ -50,12 +62,9 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         PropertyValue.Add key:=MyTable.HeaderRowRange.Columns(MyCell.Column).Text, _
                           Item:=Replace(MyCell.Text, Chr(10), Chr(13)) 'la sostituzione serve per fare andare a capo correttamente word
     Next
-        
-    'Crea un oggetto Applicazione di Word
-    Set WordApp = CreateObject("Word.Application")
-    
-    'Seleziona il file di template dalla cella "TemplateFullPath" oppure, se vuoto, lo fa scegliere all'utente
-    TargetDocumentPath = MySheet.Range("TemplateFullPath")
+         
+    'Seleziona il file di template dalla cella NAMED_CELL_FOR_TEMPLATE_PATH oppure, se vuoto, lo fa scegliere all'utente
+    TargetDocumentPath = Range(NAMED_CELL_FOR_TEMPLATE_PATH)
     If TargetDocumentPath = "" Then
         With Application.FileDialog(msoFileDialogOpen)
             .AllowMultiSelect = False
@@ -65,12 +74,15 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         End With
     End If
        
-    'Apre il file non è già aperto
+    'Apre il file se non è già aperto
     'NB: usa una funzione ausiliaria che non è built-in ma si trova in un altro modulo (copiata da sito MS)
-    If Not IsFileOpen(TargetDocumentPath) Then
-            WordApp.documents.Open FileName:=TargetDocumentPath, ReadOnly:=True
-        Else
-            Set WordApp = GetObject(TargetDocumentPath).Application
+    If IsFileOpen(TargetDocumentPath) Then
+        'File già aperto, ne prende il controllo
+        Set WordApp = GetObject(TargetDocumentPath).Application
+    Else
+        'File non aperto, crea un nuovo oggetto Applicazione di Word e apre il file
+        Set WordApp = CreateObject("Word.Application")
+        WordApp.documents.Open FileName:=TargetDocumentPath, ReadOnly:=True
     End If
     'Debug.Print WordApp.documents(0).Name
     WordApp.documents(TargetDocumentPath).Activate
@@ -88,11 +100,12 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim cc As ContentControl
     Dim ImageFilePath As String
     
-    'Se la cella "joint_sketch_file" contiene i ":" (due punti) significa che è indicato il percorso completo
-    'e si tiene buono quello, altrimenti si aggiunge il path specificato nella cella "ImagePath"
-    ImageFilePath = PropertyValue("joint_sketch_file")
+    'Se la cella nel campo TABLE_FIELD_FOR_IMAGE_FILENAME contiene i ":" (due punti) significa che è
+    'indicato il percorso completo e si tiene buono quello, altrimenti si aggiunge il path specificato
+    'nella cella NAMED_CELL_FOR_IMAGE_PATH
+    ImageFilePath = PropertyValue(TABLE_FIELD_FOR_IMAGE_FILENAME)
     If InStr(1, ImageFilePath, ":") < 1 Then
-        ImageFilePath = MySheet.Range("ImagePath").Text & ImageFilePath
+        ImageFilePath = Range(NAMED_CELL_FOR_IMAGE_PATH).Text & ImageFilePath
     End If
     
     Set cc = TargetDocument.ContentControls(1)
@@ -134,7 +147,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     FileName = Replace("WPS_" & PropertyValue("wps_number") & "_rev" & PropertyValue("wps_rev"), _
                             "/", "-")
     'Cerca un percorso di default memorizzato nel foglio
-    FileNameExport = MySheet.Range("SavePdfPath")
+    FileNameExport = Range(NAMED_CELL_FOR_EXPORT_PATH)
         'Se non è specificato un percorso, allora utilizza il percorso del template
         If FileNameExport = "" Then
             FileNameExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
@@ -165,7 +178,9 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         TargetDocument.SaveAs2 FileName:=FileNameExport & ".docx", FileFormat:=wdFormatXMLDocument
     End If
     
-
+    Set TargetDocument = Nothing
+    Set WordApp = Nothing
+    
 MyExit:
     Exit Sub
     
