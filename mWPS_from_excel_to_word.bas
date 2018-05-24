@@ -170,11 +170,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     MyAnswer = MsgBox("Vuoi appiattire e salvare il documento Word?", vbYesNo)
     
     If MyAnswer = vbYes Then
-        'Appiattisce i codici di campo
-        For Each fld In TargetDocument.Fields
-            fld.Unlink
-        Next
-        Set fld = Nothing
+        'Appiattisce tutti i codici di campo nel documento
+        TargetDocument.Fields.Unlink
         TargetDocument.SaveAs2 FileName:=FileNameExport & ".docx", FileFormat:=wdFormatXMLDocument
     End If
     
