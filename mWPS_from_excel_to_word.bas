@@ -1,12 +1,50 @@
 Attribute VB_Name = "mWPS_from_excel_to_word"
 Option Explicit
 Global UserFormUpdaterRow As Integer
+Sub process_wps()
+Attribute process_wps.VB_ProcData.VB_Invoke_Func = "w\n14"
+    
+    Dim MySheet As Excel.Worksheet
+    Dim SelectedRange As Excel.Range
+    Dim MyCell As Excel.Range
+    Dim MyAnswer As Variant
+    Dim MultipleRows As Boolean
+    
+    On Error GoTo ErrHandler
+    
+    Set MySheet = ActiveWorkbook.Worksheets("WPS")
+    
+    Set SelectedRange = Selection
+    If SelectedRange.Rows.Count > 1 Then
+        MyAnswer = MsgBox("Hai selezionato un intervallo multiplo, saranno processate tutte le righe, potrebbe richiedere " & _
+                         "molto tempo, sei sicuro di voler proseguire?", vbOKCancel)
+        If MyAnswer = vbCancel Then GoTo MyExit
+        MultipleRows = True
+     Else
+        MultipleRows = False
+    End If
+    
+    'Scorre le righe dell'intervallo selezionato
+    For Each MyCell In SelectedRange.Columns(1).Cells
+        Debug.Print MyCell.Address
+        Call read_wps_data(MySheet, MyCell, MultipleRows)
+    Next MyCell
+    
+    Set MySheet = Nothing
+    
+MyExit:
+    Exit Sub
 
+ErrHandler:
+    MsgBox "Ops, si è verifcato un errore!" & vbCrLf & _
+           "Err. n." & Err.Number & ": " & Err.Description
+    Resume MyExit
+    
+End Sub
 
-Sub read_wps_data()
+Sub read_wps_data(MySheet As Excel.Worksheet, CurrentCell As Excel.Range, AutomaticSave As Boolean)
 Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
 
-    Dim MySheet As Excel.Worksheet
     Dim MyTable As Excel.ListObject
     Dim MyCell, MyRow As Range
     Dim PropertyName As Collection
@@ -19,7 +57,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim IMAGE_HEIGHT, IMAGE_WIDTH As Single
     Dim FullNamePdfExport, FullNameWordExport As String
     Dim MyAnswer As Variant
-    Dim fld As Variant
+    Dim FileName As String
     Dim NAMED_CELL_FOR_IMAGE_PATH, _
         NAMED_CELL_FOR_TEMPLATE_PATH, _
         NAMED_CELL_FOR_PDF_EXPORT_PATH, _
@@ -41,10 +79,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'Nomi di alcuni campi "speciali":
     TABLE_FIELD_FOR_IMAGE_FILENAME = "joint_sketch_file"
     
-    
-        
-    Set MySheet = ActiveWorkbook.Worksheets("WPS")
-    
+    'Definisce l'oggeto ListObject (tabella di Excel) sul quale lavorare
     Set MyTable = MySheet.ListObjects(1)
     
     ' Legge le intestazioni di colonna della tabella e le mette in un array
@@ -58,7 +93,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Next
     
     Set PropertyValue = New Collection
-    Set MyRow = MyTable.Range.Rows(ActiveCell.Row - MyTable.Range.Row + 1)
+    Set MyRow = MyTable.Range.Rows(CurrentCell.Row - MyTable.Range.Row + 1)
     
     For Each MyCell In MyRow.Cells
         PropertyValue.Add key:=MyTable.HeaderRowRange.Columns(MyCell.Column).Text, _
@@ -143,14 +178,17 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'Esporta il file in pdf:
     'Attenzione: perchè funzionino le costanti di Word bisogna aggiungere
     'ai riferimenti la libreria "Microsoft Word x.x Object Library"
-    Dim FileName As String
     
     'Definisce il nome del file con numero e revisione della WPS, per eventual salvataggio
     FileName = Replace("WPS_" & PropertyValue("wps_number") & "_rev" & PropertyValue("wps_rev"), _
                             "/", "-")
         
     'Chiede se salvare o no il file pdf
-    MyAnswer = MsgBox("Vuoi salvare il documento in pdf?", vbYesNo)
+    If AutomaticSave Then
+        MyAnswer = vbYes
+    Else
+        MyAnswer = MsgBox("Vuoi salvare il documento in pdf?", vbYesNo)
+    End If
         
     If MyAnswer = vbYes Then
         'Cerca un percorso di default memorizzato nel foglio per il salvataggio del pdf
@@ -170,10 +208,15 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
             BitmapMissingFonts:=True, UseISO19005_1:=False
     End If
     
-    MyAnswer = MsgBox("Vuoi appiattire e salvare il documento Word?", vbYesNo)
+    'Chiede se salvare o no il file word compilato
+    If AutomaticSave Then
+        MyAnswer = vbYes
+    Else
+        MyAnswer = MsgBox("Vuoi appiattire e salvare il documento Word?", vbYesNo)
+    End If
     
     If MyAnswer = vbYes Then
-        'Cerca un percorso di default memorizzato nel foglio per il salvataggio del pdf
+        'Cerca un percorso di default memorizzato nel foglio per il salvataggio del file di Word
         FullNameWordExport = Range(NAMED_CELL_FOR_WORD_EXPORT_PATH)
         'Se non è specificato un percorso, allora utilizza il percorso del template
         If FullNameWordExport = "" Then
@@ -185,6 +228,10 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         TargetDocument.SaveAs2 FileName:=FullNameWordExport & ".docx", FileFormat:=wdFormatXMLDocument
     End If
     
+    If AutomaticSave Then
+        TargetDocument.Close
+        WordApp.Quit
+    End If
     Set TargetDocument = Nothing
     Set WordApp = Nothing
     
