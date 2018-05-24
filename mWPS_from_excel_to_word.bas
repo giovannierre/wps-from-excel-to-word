@@ -17,12 +17,13 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim StartTime
     Dim MyCellText As String
     Dim IMAGE_HEIGHT, IMAGE_WIDTH As Single
-    Dim FileNameExport As String
+    Dim FullNamePdfExport, FullNameWordExport As String
     Dim MyAnswer As Variant
     Dim fld As Variant
     Dim NAMED_CELL_FOR_IMAGE_PATH, _
         NAMED_CELL_FOR_TEMPLATE_PATH, _
-        NAMED_CELL_FOR_EXPORT_PATH As String
+        NAMED_CELL_FOR_PDF_EXPORT_PATH, _
+        NAMED_CELL_FOR_WORD_EXPORT_PATH As String
     
     Dim TABLE_FIELD_FOR_IMAGE_FILENAME As String
     
@@ -35,7 +36,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'Nomi delle cella che contengono i percorsi dei vari file:
     NAMED_CELL_FOR_IMAGE_PATH = "ImagePath"
     NAMED_CELL_FOR_TEMPLATE_PATH = "TemplateFullPath"
-    NAMED_CELL_FOR_EXPORT_PATH = "SavePdfPath"
+    NAMED_CELL_FOR_PDF_EXPORT_PATH = "SavePdfPath"
+    NAMED_CELL_FOR_WORD_EXPORT_PATH = "SaveWordPath"
     'Nomi di alcuni campi "speciali":
     TABLE_FIELD_FOR_IMAGE_FILENAME = "joint_sketch_file"
     
@@ -143,23 +145,24 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'ai riferimenti la libreria "Microsoft Word x.x Object Library"
     Dim FileName As String
     
-    'Definisce il nome del file con numero e revisione della WPS
+    'Definisce il nome del file con numero e revisione della WPS, per eventual salvataggio
     FileName = Replace("WPS_" & PropertyValue("wps_number") & "_rev" & PropertyValue("wps_rev"), _
                             "/", "-")
-    'Cerca un percorso di default memorizzato nel foglio
-    FileNameExport = Range(NAMED_CELL_FOR_EXPORT_PATH)
-        'Se non è specificato un percorso, allora utilizza il percorso del template
-        If FileNameExport = "" Then
-            FileNameExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
-        End If
-        FileNameExport = FileNameExport & FileName
-    
+        
     'Chiede se salvare o no il file pdf
     MyAnswer = MsgBox("Vuoi salvare il documento in pdf?", vbYesNo)
         
     If MyAnswer = vbYes Then
+        'Cerca un percorso di default memorizzato nel foglio per il salvataggio del pdf
+        FullNamePdfExport = Range(NAMED_CELL_FOR_PDF_EXPORT_PATH)
+        'Se non è specificato un percorso, allora utilizza il percorso del template
+        If FullNamePdfExport = "" Then
+            FullNamePdfExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
+        End If
+        FullNamePdfExport = FullNamePdfExport & FileName
+        'Salva il file in pdf
         TargetDocument.ExportAsFixedFormat OutputFileName:= _
-            FileNameExport & ".pdf", _
+            FullNamePdfExport & ".pdf", _
             ExportFormat:=wdExportFormatPDF, OpenAfterExport:=False, OptimizeFor:= _
             wdExportOptimizeForPrint, Range:=wdExportAllDocument, Item:= _
             wdExportDocumentContent, IncludeDocProps:=False, KeepIRM:=True, _
@@ -170,9 +173,16 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     MyAnswer = MsgBox("Vuoi appiattire e salvare il documento Word?", vbYesNo)
     
     If MyAnswer = vbYes Then
+        'Cerca un percorso di default memorizzato nel foglio per il salvataggio del pdf
+        FullNameWordExport = Range(NAMED_CELL_FOR_WORD_EXPORT_PATH)
+        'Se non è specificato un percorso, allora utilizza il percorso del template
+        If FullNameWordExport = "" Then
+            FullNameWordExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
+        End If
+        FullNameWordExport = FullNameWordExport & FileName
         'Appiattisce tutti i codici di campo nel documento
         TargetDocument.Fields.Unlink
-        TargetDocument.SaveAs2 FileName:=FileNameExport & ".docx", FileFormat:=wdFormatXMLDocument
+        TargetDocument.SaveAs2 FileName:=FullNameWordExport & ".docx", FileFormat:=wdFormatXMLDocument
     End If
     
     Set TargetDocument = Nothing
