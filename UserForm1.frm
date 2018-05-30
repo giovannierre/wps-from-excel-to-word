@@ -58,10 +58,15 @@ Public Sub cmdUpdate_Click()
     Dim IsPivot As Boolean
     Dim IMAGE_PATH_FIELD As String
     Dim vf As Variant 'vf= visible field (per tabella pivot)
+    Dim NAMED_CELL_FOR_IMAGE_PATH As String
     
     On Error GoTo ErrHandler
     
+    '***SETTINGS***
     IMAGE_PATH_FIELD = "joint_sketch_file"
+    NAMED_CELL_FOR_IMAGE_PATH = "ImagePath" 'E' il nome della cella che contiene il path delle immagini
+    
+    'Di default considera che il foglio contenga una tabella (ListObject) e non una tabella pivot
     IsPivot = False
     
     Set MySheet = ActiveSheet
@@ -85,7 +90,7 @@ Select Case IsPivot
                 'Se la cella "joint_sketch_file" contiene i ":" (due punti) significa che è indicato il percorso completo
                 'e si tiene buono quello, altrimenti si aggiunge il path specificato nella cella "ImagePath"
                 If InStr(1, ImageFilePath, ":", vbTextCompare) < 1 Then
-                    ImageFilePath = MySheet.Range("ImagePath").Text & ImageFilePath
+                    ImageFilePath = Range(NAMED_CELL_FOR_IMAGE_PATH).Text & ImageFilePath
                 End If
              GoTo Proceed
             End If
@@ -106,7 +111,7 @@ Select Case IsPivot
         'Se la cella "joint_sketch_file" contiene i ":" (due punti) significa che è indicato il percorso completo
         'e si tiene buono quello, altrimenti si aggiunge il path specificato nella cella "ImagePath"
         If InStr(1, ImageFilePath, ":", vbTextCompare) < 1 Then
-            ImageFilePath = MySheet.Range("PivotImagePath").Text & ImageFilePath
+            ImageFilePath = Range(NAMED_CELL_FOR_IMAGE_PATH).Text & ImageFilePath
         End If
         GoTo Proceed
         
