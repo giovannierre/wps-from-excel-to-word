@@ -82,7 +82,7 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'Definisce l'oggeto ListObject (tabella di Excel) sul quale lavorare
     Set MyTable = MySheet.ListObjects(1)
     
-    ' Legge le intestazioni di colonna della tabella e le mette in un array
+    ' Legge le intestazioni di colonna della tabella e le mette in una collection
     Set PropertyName = New Collection
     For Each MyCell In MyTable.HeaderRowRange.Cells
      MyCellText = MyCell.Text
@@ -100,7 +100,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
                           Item:=Replace(MyCell.Text, Chr(10), Chr(13)) 'la sostituzione serve per fare andare a capo correttamente word
     Next
          
-    'Seleziona il file di template dalla cella NAMED_CELL_FOR_TEMPLATE_PATH oppure, se vuoto, lo fa scegliere all'utente
+    'Seleziona il file di template del documento Word dalla cella NAMED_CELL_FOR_TEMPLATE_PATH oppure, _
+    'se vuoto, lo fa scegliere all'utente
     TargetDocumentPath = Range(NAMED_CELL_FOR_TEMPLATE_PATH)
     If TargetDocumentPath = "" Then
         With Application.FileDialog(msoFileDialogOpen)
