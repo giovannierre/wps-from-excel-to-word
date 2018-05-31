@@ -113,3 +113,9 @@ ErrHandler:
     Err.Clear
     
 End Function
+
+Public Function UpdateStringCollection(coll As Collection, ByVal MyKey As String, ByVal MyValue As String) As Collection
+    coll.Remove MyKey
+    coll.Add key:=MyKey, Item:=MyValue
+    Set UpdateStringCollection = coll
+End Function
