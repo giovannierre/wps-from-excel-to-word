@@ -12,48 +12,57 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
     Dim NAMED_CELL_FOR_TARGET_WB, _
         SOURCE_SHEET_NAME, _
         SOURCE_FIELD_WB, _
-        SOURCE_FIELD_WELDING_MAP_AND_JOINT_NO, _
+        SOURCE_FIELD_WELDING_MAP, _
+        SOURCE_FIELD_JOINT_NO, _
         SOURCE_FIELD_WPS_NUMBER, _
         SOURCE_FIELD_WPS_REV, _
+        SOURCE_FIELD_TO_BE_SPLITTED, _
         TARGET_SHEET_NAME, _
         TARGET_FIELD_WB, _
         TARGET_FIELD_WPS_NUMBER, _
         TARGET_FIELD_WPS_REV, _
         TARGET_FIELD_WELDING_MAP, _
         TARGET_FIELD_JOINT_NO As String
+    Dim DELIMITER1, DELIMITER2 As String
     Dim SourceSheet, TargetSheet As Worksheet
     Dim SourceTable, TargetTable As Excel.ListObject
     Dim RowsCount As Integer
     Dim r, f, sf, tf, tf2, v, MyCell, MyCell2 As Variant
     Dim i As Integer
     Dim TargetWB As String
-    Dim RowCollection, RowValuesCollection As Collection
+    Dim RowCollection, RowValuesCollection, CollectionClone As Collection
     Dim MyCellText As String
     Dim MyRow As Range
     Dim SourceFields As Collection
     Dim MyItem As String
+    Dim StringToSplit, split1, split2 As Variant
 
 
     '****SETTINGS****
     NAMED_CELL_FOR_TARGET_WB = "TargetWB" 'Nome della cella che contiene il nome del Welding Book da elaborare
     SOURCE_SHEET_NAME = "WPS"
     SOURCE_FIELD_WB = "_Welding_Book"
-    SOURCE_FIELD_WELDING_MAP_AND_JOINT_NO = "_Welding_map"
+    SOURCE_FIELD_WELDING_MAP = "_Welding_map"
+    SOURCE_FIELD_JOINT_NO = "_Joint_No."
     SOURCE_FIELD_WPS_NUMBER = "wps_number"
     SOURCE_FIELD_WPS_REV = "wps_rev"
+    SOURCE_FIELD_TO_BE_SPLITTED = "_Welding_map"
     TARGET_SHEET_NAME = "RiepilogoWBMultiMap"
     TARGET_FIELD_WB = "_Welding_Book"
     TARGET_FIELD_WPS_NUMBER = "wps_number"
     TARGET_FIELD_WPS_REV = "wps_rev"
     TARGET_FIELD_WELDING_MAP = "_Welding_map"
     TARGET_FIELD_JOINT_NO = "_Joint_No."
+    DELIMITER1 = ";"
+    DELIMITER2 = ":"
     
     Set SourceSheet = ActiveWorkbook.Sheets(SOURCE_SHEET_NAME)
     Set SourceTable = SourceSheet.ListObjects(1)
     'Crea una collection con i campi di interesse, sui quali iterare in lettura
     Set SourceFields = New Collection
     SourceFields.Add SOURCE_FIELD_WB
-    SourceFields.Add SOURCE_FIELD_WELDING_MAP_AND_JOINT_NO
+    SourceFields.Add SOURCE_FIELD_WELDING_MAP
+    SourceFields.Add SOURCE_FIELD_JOINT_NO
     SourceFields.Add SOURCE_FIELD_WPS_NUMBER
     SourceFields.Add SOURCE_FIELD_WPS_REV
     
@@ -77,12 +86,33 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
         If MyCell.Text = TargetWB Then
             'Se la riga corrisponde al criterio di ricerca, la setta come oggetto
             Set MyRow = SourceTable.Range.Rows(MyCell.Row - SourceTable.Range.Row + 1)
-            'Memorizza i campi di interesse per la riga selezionata in una collection
+            'Memorizza in una collection i campi di interesse per la riga selezionata
             For Each f In SourceFields
                 MyItem = MyRow.Columns(SourceTable.ListColumns(f).Range.Column).Cells(1, 1).Text
                 RowValuesCollection.Add key:=f, Item:=Replace(MyItem, Chr(10), Chr(13))
             Next f
-            RowCollection.Add RowValuesCollection
+            'Fa lo split a due livelli del campo da splittare e memorizza i valori splittati
+            'in diversi item della RowCollection
+            StringToSplit = RowValuesCollection(SOURCE_FIELD_TO_BE_SPLITTED)
+            StringToSplit = (Replace(StringToSplit, " ", "")) 'Rimuove spazi vuoti
+            StringToSplit = (Replace(StringToSplit, Chr(10), "")) 'Rimuove gli "a capo"
+            split1 = Split(StringToSplit, DELIMITER1)
+            For i = LBound(split1) To UBound(split1)
+                'Crea un clone della collection, la modifica, e la aggiunge come item di RowCollection
+                Set CollectionClone = New Collection
+                For Each f In SourceFields
+                    CollectionClone.Add key:=f, Item:=RowValuesCollection(f)
+                Next f
+                If split1(i) <> "" Then
+                    split2 = Split(split1(i), DELIMITER2)
+                    Set CollectionClone = UpdateStringCollection(CollectionClone, SOURCE_FIELD_WELDING_MAP, split2(0))
+                    If UBound(split2) > 0 Then
+                        Set CollectionClone = UpdateStringCollection(CollectionClone, SOURCE_FIELD_JOINT_NO, split2(1))
+                    End If
+                    RowCollection.Add CollectionClone
+                End If
+            Next i
+            
             'Svuota la collection coi valori della riga, sarà ripopolata alla prossima iterazione
             Set RowValuesCollection = New Collection
         End If
@@ -111,9 +141,10 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
             Select Case sf
                 Case SOURCE_FIELD_WB
                     tf = TARGET_FIELD_WB
-                Case SOURCE_FIELD_WELDING_MAP_AND_JOINT_NO
+                Case SOURCE_FIELD_WELDING_MAP
                     tf = TARGET_FIELD_WELDING_MAP
-                    tf2 = TARGET_FIELD_JOINT_NO
+                Case SOURCE_FIELD_JOINT_NO
+                    tf = TARGET_FIELD_JOINT_NO
                 Case SOURCE_FIELD_WPS_NUMBER
                     tf = TARGET_FIELD_WPS_NUMBER
                 Case SOURCE_FIELD_WPS_REV
@@ -121,17 +152,12 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
                 Case Else
                     tf = ""
             End Select
-            If tf <> "" And tf2 = "" Then
+            If tf <> "" Then
                 Set MyCell = MyRow.Columns(TargetTable.ListColumns(tf).Range.Column).Cells(1, 1)
                 With MyCell
                  .NumberFormat = "@"
-                 .Value = r(sf)
+                 .value = r(sf)
                 End With
-                
-                'Se è stato specificato un secondo campo, effettua lo split
-             'ElseIf tf2 <> "" Then
-                
-             
             End If
         Next sf
         
