@@ -1,13 +1,23 @@
 Attribute VB_Name = "mMultiMapWB"
 Option Explicit
 
-'Le routine in questo modulo servono per elaborare welding book composti da molte Welding Map,
-'per i quali nel foglio WPS sono specificati in un'unica cella Welding Map e Join No.,
-'esempio: "WM001: W1, W2; WM002: W1, W3"
-'Le diverse welding map devono essere separate da ";" (punto e virgola).
-
 Sub ElaborateWB()
 Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
+'Questa routine serve per elaborare welding book composti da molte Welding Map,
+'per i quali nel foglio WPS sono specificati, in un'unica cella, Welding Map e Joint No.,
+'esempio: "WM001: W1, W2; WM002: W1, W3"
+'Le diverse welding map devono essere separate da ";" (punto e virgola).
+'Il nome della welding map deve essere seguito dai ":" (due punti) e poi dai nomi dei giunti.
+
+'La routine legge i dati dalla tabella sorgente e sul campo che viene specificato nei settings come
+'quello da splittare, effettua lo split dei valori e con un ciclo for sul numero di valori ottenuti
+'duplica la riga, andando a scrivere in ogni riga duplicata uno dei valori splittati.
+'I dati sono gestiti in collection:
+'- la collection RowCollection rappresenta le righe ed è una collection di collection di tipo 'RowValuesCollection'
+'- la collection RowValuesCollection contiene i valori dei campi per ogni riga
+'Ho utilizzato le collection anche se probabilmente non sono il metodo più veloce (la velocità per ora
+'non è un vincolo) perchè consentono di iterare facilmente sugli item e di gestire i valori come coppie
+'key-value, con vantaggi dal punto di vista della comprensibilità del codice.
     
     Dim NAMED_CELL_FOR_TARGET_WB, _
         SOURCE_SHEET_NAME, _
@@ -36,25 +46,31 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
     Dim SourceFields As Collection
     Dim MyItem As String
     Dim StringToSplit, split1, split2 As Variant
-
+    
+    On Error GoTo ErrHandler
 
     '****SETTINGS****
     NAMED_CELL_FOR_TARGET_WB = "TargetWB" 'Nome della cella che contiene il nome del Welding Book da elaborare
+    'Da dove prendere i dati (nome foglio + nomi dei campi della tabella):
     SOURCE_SHEET_NAME = "WPS"
     SOURCE_FIELD_WB = "_Welding_Book"
     SOURCE_FIELD_WELDING_MAP = "_Welding_map"
     SOURCE_FIELD_JOINT_NO = "_Joint_No."
     SOURCE_FIELD_WPS_NUMBER = "wps_number"
     SOURCE_FIELD_WPS_REV = "wps_rev"
-    SOURCE_FIELD_TO_BE_SPLITTED = "_Welding_map"
+    SOURCE_FIELD_TO_BE_SPLITTED = "_Welding_map" 'Deve essere uguale a uno dei campi elencati sopra
+    'Dove scrivere i dati (nome foglio + nomi dei campi della tabella):
     TARGET_SHEET_NAME = "RiepilogoWBMultiMap"
     TARGET_FIELD_WB = "_Welding_Book"
     TARGET_FIELD_WPS_NUMBER = "wps_number"
     TARGET_FIELD_WPS_REV = "wps_rev"
     TARGET_FIELD_WELDING_MAP = "_Welding_map"
     TARGET_FIELD_JOINT_NO = "_Joint_No."
+    'Delimitatori di primo e secondo livello utilizzati nel campo da splittare
     DELIMITER1 = ";"
     DELIMITER2 = ":"
+    '****END SETTINGS****
+    
     
     Set SourceSheet = ActiveWorkbook.Sheets(SOURCE_SHEET_NAME)
     Set SourceTable = SourceSheet.ListObjects(1)
@@ -89,7 +105,7 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
             'Memorizza in una collection i campi di interesse per la riga selezionata
             For Each f In SourceFields
                 MyItem = MyRow.Columns(SourceTable.ListColumns(f).Range.Column).Cells(1, 1).Text
-                RowValuesCollection.Add key:=f, Item:=Replace(MyItem, Chr(10), Chr(13))
+                RowValuesCollection.Add key:=f, Item:=MyItem
             Next f
             'Fa lo split a due livelli del campo da splittare e memorizza i valori splittati
             'in diversi item della RowCollection
@@ -168,5 +184,17 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
     'Cancella l'ultima riga della tabella, che per come è impostato il ciclo sopra rimane sempre vuota
     TargetTable.ListRows(TargetTable.ListRows.Count).Delete
     
+    'Fa un po' di pulizia
+    Set RowCollection = Nothing
+    Set RowValuesCollection = Nothing
+    Set CollectionClone = Nothing
+    
+MyExit:
+    Exit Sub
+
+ErrHandler:
+    MsgBox "Ops, si è verifcato un errore!" & vbCrLf & _
+           "Err. n." & Err.Number & ": " & Err.Description
+    Resume MyExit
     
 End Sub
