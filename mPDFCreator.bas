@@ -10,8 +10,6 @@ Sub PDFCreatorPrint()
     Dim oQueue As Queue
     Dim oPrintJob As PrintJob
     Dim FullPath As String
-    
-    
         
     Set oPDFCreator = New PdfCreatorObj
     Set oQueue = New Queue
@@ -22,7 +20,7 @@ Sub PDFCreatorPrint()
     'Inizializza la coda di stampa
     oQueue.Initialize
     
-    'Application.ActivePrinter = "PDFCreator"
+    'Application.ActivePrinter = "PDFCreator" 'Per qualche motivo non funziona, da verificare
     ActiveSheet.PrintOut 1, 1
        
     FullPath = ActiveWorkbook.Path & "\ProvePDFCreator\" & "TestPage.pdf"
@@ -33,9 +31,6 @@ Sub PDFCreatorPrint()
         MsgBox "Currently there are " & oQueue.Count & " job(s) in the queue”"
     End If
     
-    'Setta i tempi di attesa, in secondi
-    'oQueue.WaitForJob (5)
-    'oQueue.WaitForJobs (30)
         
     'Setta un oggetto PrintJob
     Set oPrintJob = oQueue.NextJob
@@ -45,6 +40,12 @@ Sub PDFCreatorPrint()
     oPrintJob.SetProfileSetting "AuthorTemplate", "GR"
     
     oPrintJob.ConvertTo (FullPath)
+    
+    If (Not oPrintJob.IsFinished Or Not oPrintJob.IsSuccessful) Then
+        MsgBox "Ops! Some problem occured, could not convert the file: " & FullPath
+    Else
+        MsgBox "Job finished successfully"
+    End If
     
     oQueue.ReleaseCom
 
