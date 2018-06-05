@@ -9,8 +9,12 @@ Attribute process_wps.VB_ProcData.VB_Invoke_Func = "w\n14"
     Dim MyCell As Excel.Range
     Dim MyAnswer As Variant
     Dim MultipleRows As Boolean
+    Dim AllowDoEvents As Boolean
     
     On Error GoTo ErrHandler
+    
+    'Definisco un parametro per poter interrompere loop molto lunghi
+    AllowDoEvents = False
     
     Set MySheet = ActiveWorkbook.Worksheets("WPS")
     
@@ -19,6 +23,13 @@ Attribute process_wps.VB_ProcData.VB_Invoke_Func = "w\n14"
         MyAnswer = MsgBox("Hai selezionato un intervallo multiplo, saranno processate tutte le righe, potrebbe richiedere " & _
                          "molto tempo, sei sicuro di voler proseguire?", vbOKCancel)
         If MyAnswer = vbCancel Then GoTo MyExit
+        If SelectedRange.Rows.Count > 10 Then
+            MyAnswer = MsgBox("Il numero di righe selezionato è superiore a 10, potrebbe essere un errore di selezione, " & _
+                       "prosegui solo se sei sicuro di quello che stai facendo!" & vbCrLf & _
+                       "[in caso di problemi, premere ESC per uscire forzatamente dal loop]", vbOKCancel)
+            If MyAnswer = vbCancel Then GoTo MyExit
+            AllowDoEvents = True
+        End If
         MultipleRows = True
      Else
         MultipleRows = False
@@ -26,8 +37,8 @@ Attribute process_wps.VB_ProcData.VB_Invoke_Func = "w\n14"
     
     'Scorre le righe dell'intervallo selezionato
     For Each MyCell In SelectedRange.Columns(1).Cells
-        Debug.Print MyCell.Address
         Call read_wps_data(MySheet, MyCell, MultipleRows)
+        If AllowDoEvents Then DoEvents
     Next MyCell
     
     Set MySheet = Nothing
