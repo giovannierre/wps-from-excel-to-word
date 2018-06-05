@@ -140,6 +140,9 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
 '********************************************************
 'Scrive i dati nella tabella di destinazione effettuando un opportuno split
 
+    'Se la tabella è filtrata, toglie il filtro
+    If TargetTable.ShowAutoFilter Then TargetTable.Range.AutoFilter
+    
     'Cacella tutte le righe della tabella tranne la prima, per conservare le formule
     While TargetTable.ListRows.Count > 1
         TargetTable.ListRows(TargetTable.ListRows.Count).Delete
