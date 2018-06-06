@@ -119,3 +119,30 @@ Public Function UpdateStringCollection(coll As Collection, ByVal MyKey As String
     coll.Add key:=MyKey, Item:=MyValue
     Set UpdateStringCollection = coll
 End Function
+
+
+Function DirExists(DirFullPath As String, Optional CreateDir As Boolean = False, Optional MsgToUser As Boolean = False) As Boolean
+'Controlla se una directory esiste e, se specificato nei parametri di ingresso, la crea
+    Dim Msg As String
+    
+    On Error Resume Next
+    
+    If Dir(DirFullPath, vbDirectory) = "" Then
+        DirExists = False
+        If CreateDir Then
+            MkDir Path:=DirFullPath
+            DirExists = True
+        Else
+            If MsgToUser Then
+                Msg = "La directory '" & DirFullPath & "' non esiste, vuoi crearla?"
+                If (MsgBox(Msg, vbOKCancel)) = vbOK Then
+                    MkDir Path:=DirFullPath
+                    DirExists = True
+                End If
+            End If
+        End If
+    Else
+        DirExists = True
+    End If
+    
+End Function
