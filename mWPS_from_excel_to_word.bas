@@ -218,11 +218,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         If FullNamePdfExport = "" Then
             FullNamePdfExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
         End If
-        'Controlla che la directory esista, tramite una funzione ausiliaria
-        'Elimina la parte di FullPath che rappresenta un prefisso
-        DirSplit = Split(FullNamePdfExport, "\")
-        DirToCheck = Replace(FullNamePdfExport, "\" & DirSplit(UBound(DirSplit)), "")
-        If Not DirExists(DirToCheck, False, True) Then
+        'Controlla che la directory esista, tramite una funzione ausiliaria, che provveda anche a crearla, se confermato.
+        If Not DirExists(FullNamePdfExport, False, False, True) Then
             MsgBox "Procedura annullata!"
             GoTo MyExit
         End If
@@ -255,11 +252,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         If FullNameWordExport = "" Then
             FullNameWordExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
         End If
-        'Controlla che la directory esista, tramite una funzione ausiliaria
-        'Elimina la parte di FullPath che rappresenta un prefisso
-        DirSplit = Split(FullNameWordExport, "\")
-        DirToCheck = Replace(FullNameWordExport, "\" & DirSplit(UBound(DirSplit)), "")
-        If Not DirExists(DirToCheck, False, True) Then
+        'Controlla che la directory esista, tramite una funzione ausiliaria, che provveda anche a crearla, se confermato.
+        If Not DirExists(FullNameWordExport, False, False, True) Then
             MsgBox "Procedura annullata!"
             GoTo MyExit
         End If
