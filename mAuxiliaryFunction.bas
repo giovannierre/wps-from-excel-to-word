@@ -121,28 +121,60 @@ Public Function UpdateStringCollection(coll As Collection, ByVal MyKey As String
 End Function
 
 
-Function DirExists(DirFullPath As String, Optional CreateDir As Boolean = False, Optional MsgToUser As Boolean = False) As Boolean
+Function DirExists(ByVal FullPath As String, Optional FullPathIsDir As Boolean = False, _
+                   Optional CreateDir As Boolean = False, Optional MsgToUser As Boolean = False) As Boolean
 'Controlla se una directory esiste e, se specificato nei parametri di ingresso, la crea
+'Parametri:
+'   FullPath:      percorso completo da verificare, può terminare con una directory o con un file
+'                  Es.: "C:\la\mia\directory" oppure "C:\il\mio\file.pdf"
+'   FullPathIsDir: definisce se il percorso è una directory o un file (vd. esempi sopra), se è un file la routine
+'                  ne estrae la directory
+'   CreateDir:     specifica se creare la directory, nel caso in cui la directory non esista
+'   MsgToUser:     specifica se chiedere conferma all'utente per la creazione della directory, nel caso in cui non esista
+    
     Dim Msg As String
+    Dim DirSplit As Variant
+    Dim TextToRemove As String
     
     On Error Resume Next
     
-    If Dir(DirFullPath, vbDirectory) = "" Then
+    'Se il FullPath non è una directory, allora toglie l'ultima parte del percorso e tiene solo la directory.
+    'La funzione Split mi sembra la più rapida per elaborare la stringa: definisce tutti i pezzetti del percorso,
+    'successivamente seleziono la stringa togliendo l'ultimo pezzetto.
+    If Not FullPathIsDir Then
+        DirSplit = Split(FullPath, "\")
+        'La parte da rimuovere è l'ultima che segue lo slash "\", includendo lo slash
+        TextToRemove = "\" & DirSplit(UBound(DirSplit))
+        FullPath = Left(FullPath, Len(FullPath) - Len(TextToRemove))
+    End If
+    
+    If Dir(FullPath, vbDirectory) = "" Then
         DirExists = False
         If CreateDir Then
-            MkDir Path:=DirFullPath
-            DirExists = True
+            GoTo CreateDir
         Else
             If MsgToUser Then
-                Msg = "La directory '" & DirFullPath & "' non esiste, vuoi crearla?"
+                Msg = "La directory '" & FullPath & "'" & vbCrLf & "non esiste, vuoi crearla?"
                 If (MsgBox(Msg, vbOKCancel)) = vbOK Then
-                    MkDir Path:=DirFullPath
-                    DirExists = True
+                    GoTo CreateDir
                 End If
             End If
         End If
     Else
         DirExists = True
     End If
-    
+Exit Function
+
+CreateDir:
+    MkDir Path:=FullPath
+    'Controlla che la directory sia stata creata con successo
+    If Not Dir(FullPath, vbDirectory) = "" Then
+        DirExists = True
+    Else
+        If MsgToUser Then MsgBox "Ops! Per qualche motivo non è stato possibile creare la directory: " & vbCrLf & vbCrLf & _
+                                  FullPath & vbCrLf & vbCrLf & _
+                                 "Controllare che il percorso sia corretto."
+        DirExists = False
+    End If
+
 End Function
