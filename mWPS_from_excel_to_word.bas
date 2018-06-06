@@ -75,6 +75,8 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         NAMED_CELL_FOR_WORD_EXPORT_PATH As String
     
     Dim TABLE_FIELD_FOR_IMAGE_FILENAME As String
+    Dim DirToCheck As String
+    Dim DirSplit As Variant
     
     On Error GoTo ErrHandler
     
@@ -187,7 +189,10 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     
     Debug.Print "Elapsed time: " & Timer - StartTime
     
-    'Esporta il file in pdf:
+'****************************
+'****SALVATAGGIO DEI FILE****
+'****************************
+    
     'Attenzione: perchè funzionino le costanti di Word bisogna aggiungere
     'ai riferimenti la libreria "Microsoft Word x.x Object Library"
     
@@ -195,6 +200,10 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     FileName = Replace("WPS_" & PropertyValue("wps_number") & "_rev" & PropertyValue("wps_rev"), _
                             "/", "-")
         
+'******************************
+'**SALVATAGGIO IN FORMATO pdf**
+'******************************
+
     'Chiede se salvare o no il file pdf
     If AutomaticSave Then
         MyAnswer = vbYes
@@ -209,6 +218,15 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         If FullNamePdfExport = "" Then
             FullNamePdfExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
         End If
+        'Controlla che la directory esista, tramite una funzione ausiliaria
+        'Elimina la parte di FullPath che rappresenta un prefisso
+        DirSplit = Split(FullNamePdfExport, "\")
+        DirToCheck = Replace(FullNamePdfExport, "\" & DirSplit(UBound(DirSplit)), "")
+        If Not DirExists(DirToCheck, False, True) Then
+            MsgBox "Procedura annullata!"
+            GoTo MyExit
+        End If
+        
         FullNamePdfExport = FullNamePdfExport & FileName
         'Salva il file in pdf
         TargetDocument.ExportAsFixedFormat OutputFileName:= _
@@ -219,7 +237,10 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
             CreateBookmarks:=wdExportCreateNoBookmarks, DocStructureTags:=True, _
             BitmapMissingFonts:=True, UseISO19005_1:=False
     End If
-    
+
+'*******************************
+'**SALVATAGGIO IN FORMATO Word**
+'*******************************
     'Chiede se salvare o no il file word compilato
     If AutomaticSave Then
         MyAnswer = vbYes
@@ -234,6 +255,15 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         If FullNameWordExport = "" Then
             FullNameWordExport = Replace(TargetDocument.FullName, TargetDocument.Name, "")
         End If
+        'Controlla che la directory esista, tramite una funzione ausiliaria
+        'Elimina la parte di FullPath che rappresenta un prefisso
+        DirSplit = Split(FullNameWordExport, "\")
+        DirToCheck = Replace(FullNameWordExport, "\" & DirSplit(UBound(DirSplit)), "")
+        If Not DirExists(DirToCheck, False, True) Then
+            MsgBox "Procedura annullata!"
+            GoTo MyExit
+        End If
+        
         FullNameWordExport = FullNameWordExport & FileName
         'Appiattisce tutti i codici di campo nel documento
         TargetDocument.Fields.Unlink
