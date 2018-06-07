@@ -27,12 +27,14 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
         SOURCE_FIELD_WPS_NUMBER, _
         SOURCE_FIELD_WPS_REV, _
         SOURCE_FIELD_TO_BE_SPLITTED, _
+        SOURCE_FIELD_SORT, _
         TARGET_SHEET_NAME, _
         TARGET_FIELD_WB, _
         TARGET_FIELD_WPS_NUMBER, _
         TARGET_FIELD_WPS_REV, _
         TARGET_FIELD_WELDING_MAP, _
-        TARGET_FIELD_JOINT_NO As String
+        TARGET_FIELD_JOINT_NO, _
+        TARGET_FIELD_SORT As String
     Dim DELIMITER1, DELIMITER2 As String
     Dim SourceSheet, TargetSheet As Worksheet
     Dim SourceTable, TargetTable As Excel.ListObject
@@ -59,6 +61,7 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
     SOURCE_FIELD_WPS_NUMBER = "wps_number"
     SOURCE_FIELD_WPS_REV = "wps_rev"
     SOURCE_FIELD_TO_BE_SPLITTED = "_Welding_map" 'Deve essere uguale a uno dei campi elencati sopra
+    SOURCE_FIELD_SORT = "_sort"
     'Dove scrivere i dati (nome foglio + nomi dei campi della tabella):
     TARGET_SHEET_NAME = "RiepilogoWBMultiMap"
     TARGET_FIELD_WB = "_Welding_Book"
@@ -66,6 +69,7 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
     TARGET_FIELD_WPS_REV = "wps_rev"
     TARGET_FIELD_WELDING_MAP = "_Welding_map"
     TARGET_FIELD_JOINT_NO = "_Joint_No."
+    TARGET_FIELD_SORT = "_sort"
     'Delimitatori di primo e secondo livello utilizzati nel campo da splittare
     DELIMITER1 = ";"
     DELIMITER2 = ":"
@@ -81,6 +85,7 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
     SourceFields.Add SOURCE_FIELD_JOINT_NO
     SourceFields.Add SOURCE_FIELD_WPS_NUMBER
     SourceFields.Add SOURCE_FIELD_WPS_REV
+    SourceFields.Add SOURCE_FIELD_SORT
     
     Set TargetSheet = ActiveWorkbook.Sheets(TARGET_SHEET_NAME)
     Set TargetTable = TargetSheet.ListObjects(1)
@@ -168,6 +173,8 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
                     tf = TARGET_FIELD_WPS_NUMBER
                 Case SOURCE_FIELD_WPS_REV
                     tf = TARGET_FIELD_WPS_REV
+                Case SOURCE_FIELD_SORT
+                    tf = TARGET_FIELD_SORT
                 Case Else
                     tf = ""
             End Select
