@@ -139,7 +139,8 @@ ErrHandler:
             "Nome completo rilevato: " & ImageFilePath
         Case Else
             MsgBox "Ops, si è verificato un errore." & vbCrLf & "Error n." & Err.Number & ": " & Err.Description
-    End Select
+        End Select
+    UserFormUpdaterRow = MyRow.Row
     Err.Clear
     Resume MyExit
     

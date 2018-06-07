@@ -299,8 +299,10 @@ Sub UpdateUserForm1(CurrentSelection As Range)
         End If
     Else
     'Altrimenti se è selezionato l'update continuo, allora chiama la procedura di update
-    'dello userform1
-        Call UserForm1.cmdUpdate_Click
+    'dello userform1, solo se si cambia riga
+        If CurrentSelection.Row <> UserFormUpdaterRow Then
+            Call UserForm1.cmdUpdate_Click
+        End If
     End If
 
 Exit Sub
