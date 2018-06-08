@@ -166,9 +166,9 @@ Proceed:
       .PictureSizeMode = fmPictureSizeModeZoom
     End With
     
-    If JointNumber <> "" Then Me.lblJointNo = "Joint No: " & JointNumber
-    If WPSNumber <> "" Then Me.lblWPSNo = "WPS No.: " & WPSNumber
-    If JointDetails <> "" Then Me.lblJointDetails = JointDetails
+    Me.lblJointNo = "Joint No: " & JointNumber
+    Me.lblWPSNo = "WPS No.: " & WPSNumber
+    Me.lblJointDetails = JointDetails
     
     Me.BackColor = vbGreen
     
