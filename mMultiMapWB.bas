@@ -48,6 +48,7 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
     Dim SourceFields As Collection
     Dim MyItem As String
     Dim StringToSplit, split1, split2 As Variant
+    Dim FormatCode As String
     
     On Error GoTo ErrHandler
 
@@ -159,9 +160,9 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
         Set MyRow = TargetTable.DataBodyRange.Rows(TargetTable.ListRows.Count)
         'Scorre i campi di interesse
         For Each sf In SourceFields
-            'Questo costrutto select setta la corrispondenza tra i campi sorgente e target, ci sono modi più intelligenti
-            'ma per ora questo è il più veloce
-            tf2 = ""
+            'Questo costrutto select setta la corrispondenza tra i campi sorgente e target,
+            'ci sono modi più intelligenti ma per ora questo è il più veloce
+            FormatCode = "@" 'Di base la cella sarà in formato testo, salvo ove specificato diversamente
             Select Case sf
                 Case SOURCE_FIELD_WB
                     tf = TARGET_FIELD_WB
@@ -175,13 +176,14 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
                     tf = TARGET_FIELD_WPS_REV
                 Case SOURCE_FIELD_SORT
                     tf = TARGET_FIELD_SORT
+                    FormatCode = "0" 'Formato numerico per questo campo
                 Case Else
                     tf = ""
             End Select
             If tf <> "" Then
                 Set MyCell = MyRow.Columns(TargetTable.ListColumns(tf).Range.Column).Cells(1, 1)
                 With MyCell
-                 .NumberFormat = "@"
+                 .NumberFormat = FormatCode
                  .value = r(sf)
                 End With
             End If
