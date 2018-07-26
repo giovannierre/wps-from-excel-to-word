@@ -139,6 +139,14 @@ Attribute ElaborateWB.VB_ProcData.VB_Invoke_Func = "e\n14"
             Set RowValuesCollection = New Collection
         End If
     Next MyCell
+    
+    'VERIFICA SE SONO STATI TROVATI DATI
+    If RowCollection.Count < 1 Then
+        MsgBox "Non sono stati trovati dati per il welding book '" & TargetWB & "', verificare il nome." & vbCrLf & _
+               "La procedura è annullata."
+        GoTo MyExit
+    End If
+    
         
     
 '********************************************************
