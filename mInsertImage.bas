@@ -11,19 +11,34 @@ Attribute ProvaInsertImageInCell.VB_ProcData.VB_Invoke_Func = " \n14"
     InsertImageInCell TargetCell, ImagePath
     
 End Sub
-Sub PasteWPSImage()
-Attribute PasteWPSImage.VB_ProcData.VB_Invoke_Func = "m\n14"
+Sub PasteWPSImageAndData()
+Attribute PasteWPSImageAndData.VB_ProcData.VB_Invoke_Func = "m\n14"
 'NB: questa è una routine molto personalizzata sul foglio, sviluppata rapidamente e non pretende
 'di essere fatta bene o di essere universale
 
-Dim SourceSheetName As String, SourceLookUpColumnName As String, SourceValueColumnName As String
-Dim TargetSheetName As String, TargetLookUpColumnNumber As Integer, TargetColumnNumber As Integer
+'Attenzione: fa uso del modulo mRegexUtils creato da me che deve essere inserito nel file
+
+Dim SourceSheetName As String, SourceLookUpColumnName As String
+Dim SourceValueColumnName As String 'Per l'immagine
+Dim SourceValue2ColumnName As String 'Per i dati del cianfrino
+Dim TargetSheetName As String, TargetLookUpColumnName As String, TargetColumnName As String
+Dim TargetLookUpColumnNumber As Integer, TargetColumnNumber As Integer
+Dim TargetTableHeader As Range
+Dim ColumnName As String, ColumnNumber As Integer
 Dim ImageFolderPath As String
-Dim SourceLookUpColumn As Range, SourceValueColumn As Range
+Dim SourceLookUpColumn As Range
+Dim SourceValueColumn As Range, SourceValue2Column As Range
+Dim Value2 As String
 Dim TargetLookUpColumn As Range, TargetColumn As Range
-Dim MyCell As Range
+Dim SourceRow As Variant
+Dim MyCell As Range, TargetCell As Range
 Dim ImageName As Variant 'può assumere un valore di errore se non va a buon fine il metodo Match
 Dim ImagePath As String
+Dim MyImage As Variant
+Dim MyImageName As String
+Dim TargetSheet As Excel.Worksheet
+Dim UpdateSelected As Boolean, SelectedRange As Range
+Dim FirstSelectedRow As Integer, LastSelectedRow As Integer
 
 'On Error Resume Next
 
@@ -33,45 +48,117 @@ Dim ImagePath As String
 SourceSheetName = "WPS"
 SourceLookUpColumnName = "wps_number"
 SourceValueColumnName = "joint_sketch_file"
+SourceValue2ColumnName = "joint_sketch_text_left"
 ImageFolderPath = "J:\180139-CMA_Spa-COLLABORAZIONE\PQR_e_WPS\JointSketchRepository\"
 
-'Per la destinazione è più facile definire i numeri di colonna che i nomi, che son troppo complicati
-TargetSheetName = "H217-21_110"
-TargetLookUpColumnNumber = 3
-TargetColumnNumber = 2
+'Per la destinazione è i nomi di colonna sono complicati, per cui è sufficiente inserirne una
+'parte poi con le regular expression troverà la colonna corrispondente
+TargetSheetName = "H217-21" 'E' solo una parte del nome, verrà confrontato con l'activesheet
+TargetLookUpColumnName = "WPS-Nr."
+TargetColumnName = "weld details"
+
+'****************************
+'**Individua il TargetSheet**
+'****************************
+Set TargetSheet = ActiveSheet
+'Fa un confronto con il nome passato nelle impostazioni
+If StrComp(regexMatch(TargetSheet.Name, TargetSheetName, False), TargetSheetName, vbTextCompare) <> 0 Then
+    MsgBox "Hai tentato di lanciare al procedura su un foglio che non assomiglia a '" & TargetSheetName & _
+           "', posizionati prima sul foglio di interesse oppure modifica le impostazioni nel codice VBA."
+    GoTo MyExit
+End If
+
+'***********************************************************************
+'**Definisce un parametro per gestire l'aggiornamento di una sola riga**
+'***********************************************************************
+'Se si fa una selezione multipla, allora viene aggiornata solo la selezione
+UpdateSelected = False 'di default aggiorna tutto
+If Selection.Cells.Count > 1 Then
+    UpdateSelected = True
+    Set SelectedRange = Selection
+    FirstSelectedRow = SelectedRange.Row
+    LastSelectedRow = FirstSelectedRow + SelectedRange.Rows.Count - 1
+End If
+
+'**********************************
+'**FA PULIZIA PRIMA DI COMINCIARE**
+'**********************************
+'Cancella tutto solo se non c'è un aggiornamento parziale
+If Not UpdateSelected Then
+    'Scorre tutte le immagini nel foglio e le cancella
+    For Each MyImage In TargetSheet.Shapes
+        'conserva solo le immagini del template
+        Debug.Print MyImage.Name
+        MyImageName = MyImage.Name
+        If MyImageName <> "Gruppieren 16" And MyImageName <> "Gruppieren 11" And MyImageName <> "Grafik 2" Then
+            Debug.Print MyImageName
+            MyImage.Delete
+        End If
+    Next MyImage
+End If
 
 '****************
 '**ELABORAZIONE**
 '****************
 Set SourceLookUpColumn = Sheets(SourceSheetName).ListObjects(1).ListColumns(SourceLookUpColumnName).DataBodyRange
 Set SourceValueColumn = Sheets(SourceSheetName).ListObjects(1).ListColumns(SourceValueColumnName).DataBodyRange
+Set SourceValue2Column = Sheets(SourceSheetName).ListObjects(1).ListColumns(SourceValue2ColumnName).DataBodyRange
 
-Set TargetLookUpColumn = Sheets(TargetSheetName).ListObjects(1).ListColumns(TargetLookUpColumnNumber).DataBodyRange
-Set TargetColumn = Sheets(TargetSheetName).ListObjects(1).ListColumns(TargetColumnNumber).DataBodyRange
+Set TargetTableHeader = TargetSheet.ListObjects(1).HeaderRowRange
+For Each MyCell In TargetTableHeader.Cells
+    'MyCell.Select 'solo per debug
+    'Verifica se c'è corrispondenza e individua le colonnne
+    If StrComp(regexMatch(MyCell.value, TargetLookUpColumnName, False), TargetLookUpColumnName, vbTextCompare) = 0 Then
+        TargetLookUpColumnNumber = MyCell.Column - (TargetTableHeader.Cells(1.1).Column - 1)
+    End If
+    If StrComp(regexMatch(MyCell.value, TargetColumnName, False), TargetColumnName, vbTextCompare) = 0 Then
+        TargetColumnNumber = MyCell.Column - (TargetTableHeader.Cells(1.1).Column - 1)
+    End If
+Next MyCell
+Set TargetLookUpColumn = TargetSheet.ListObjects(1).ListColumns(TargetLookUpColumnNumber).DataBodyRange
+Set TargetColumn = TargetSheet.ListObjects(1).ListColumns(TargetColumnNumber).DataBodyRange
 
+'Scorre tutte le celle per cercare il valore di riferimento e inserire il contenuto
 For Each MyCell In TargetLookUpColumn.Cells
     'Debug.Print MyCell.value
-    
     'Cerca solo valori non nulli per evitare errori della funzione Match
     If Not MyCell.value = vbNullString Then
-        ImageName = Application.Index(SourceValueColumn, _
-                    Application.Match(MyCell.value, SourceLookUpColumn, 0))
+        SourceRow = Application.Match(MyCell.value, SourceLookUpColumn, 0)
         'Gestisce l'errore di valore non trovato
-        If Not IsError(ImageName) Then
-            Debug.Print ImageName
-            ImagePath = ImageFolderPath & ImageName
-            Debug.Print TargetColumn.EntireColumn.Rows(MyCell.Row).Row
-            InsertImageInCell TargetColumn.EntireColumn.Rows(MyCell.Row), ImagePath
+        If Not IsError(SourceRow) Then
+            'Aggiorna immagine e dati sempre (se non c'è una selezione multipla)
+            'oppure solo se la riga è nell'intervallo selezionato
+            If Not UpdateSelected Or (MyCell.Row >= FirstSelectedRow And MyCell.Row <= LastSelectedRow) Then
+                'Inserisce immagine
+                ImageName = Application.Index(SourceValueColumn, SourceRow)
+                ImagePath = ImageFolderPath & ImageName
+                'Debug.Print TargetColumn.EntireColumn.Rows(MyCell.Row).Row
+                Set TargetCell = TargetColumn.EntireColumn.Rows(MyCell.Row)
+                InsertImageInCell TargetCell, ImagePath, 0.5
+                
+                'Inserisce i dati
+                Value2 = Application.Index(SourceValue2Column, SourceRow)
+                TargetCell.value = Value2
+            End If
         End If
+        
+        
     End If
 Next MyCell
 
+MyExit:
+    Exit Sub
+
 End Sub
 
-Sub InsertImageInCell(TargetCell As Range, ImagePath As String)
+Sub InsertImageInCell(TargetCell As Range, ImagePath As String, Optional HCrop As Single = 0, Optional VCrop As Single = 0)
 Attribute InsertImageInCell.VB_ProcData.VB_Invoke_Func = "m\n14"
 'Inserisce un'immagine in una cella
+'HCrop e VCrop sono Horizontal Crop e Vertical Crop
+
     Dim CellHeight As Single, CellWidth As Single
+    Dim MyImage As ShapeRange
+    Dim ImageWidth As Single
     
     CellHeight = TargetCell.Height
     CellWidth = TargetCell.Width
@@ -81,138 +168,29 @@ Attribute InsertImageInCell.VB_ProcData.VB_Invoke_Func = "m\n14"
     'Inserisce l'immagine
     ActiveSheet.Pictures.Insert(ImagePath).Select
     'Ridimensiona l'immagine sulla base dell'altezza della cella
-    Selection.ShapeRange.Height = CellHeight
+    Set MyImage = Selection.ShapeRange
+    MyImage.Height = CellHeight
     'Se l'immagine è più larga della cella, allora la ridimensiona anche in base alla larghezza della cella
-    If Selection.ShapeRange.Width > CellWidth Then
-        Selection.ShapeRange.Width = CellWidth
+    If MyImage.Width > CellWidth Then
+        MyImage.Width = CellWidth
     End If
-Exit Sub
-    Selection.ShapeRange.Height = 263.6220472441
-    Selection.ShapeRange.Height = 260.7874015748
-    Selection.ShapeRange.Height = 257.9527559055
-    Selection.ShapeRange.Height = 255.1181102362
-    Selection.ShapeRange.Height = 252.2834645669
-    Selection.ShapeRange.Height = 249.4488188976
-    Selection.ShapeRange.Height = 246.6141732283
-    Selection.ShapeRange.Height = 243.7795275591
-    Selection.ShapeRange.Height = 240.9448818898
-    Selection.ShapeRange.Height = 238.1102362205
-    Selection.ShapeRange.Height = 235.2755905512
-    Selection.ShapeRange.Height = 232.4409448819
-    Selection.ShapeRange.Height = 229.6062992126
-    Selection.ShapeRange.Height = 226.7716535433
-    Selection.ShapeRange.Height = 223.937007874
-    Selection.ShapeRange.Height = 221.1023622047
-    Selection.ShapeRange.Height = 218.2677165354
-    Selection.ShapeRange.Height = 215.4330708661
-    Selection.ShapeRange.Height = 212.5984251969
-    Selection.ShapeRange.Height = 209.7637795276
-    Selection.ShapeRange.Height = 206.9291338583
-    Selection.ShapeRange.Height = 204.094488189
-    Selection.ShapeRange.Height = 201.2598425197
-    Selection.ShapeRange.Height = 198.4251968504
-    Selection.ShapeRange.Height = 195.5905511811
-    Selection.ShapeRange.Height = 192.7559055118
-    Selection.ShapeRange.Height = 189.9212598425
-    Selection.ShapeRange.Height = 187.0866141732
-    Selection.ShapeRange.Height = 184.2519685039
-    Selection.ShapeRange.Height = 181.4173228346
-    Selection.ShapeRange.Height = 178.5826771654
-    Selection.ShapeRange.Height = 175.7480314961
-    Selection.ShapeRange.Height = 172.9133858268
-    Selection.ShapeRange.Height = 170.0787401575
-    Selection.ShapeRange.Height = 167.2440944882
-    Selection.ShapeRange.Height = 164.4094488189
-    Selection.ShapeRange.Height = 161.5748031496
-    Selection.ShapeRange.Height = 158.7401574803
-    Selection.ShapeRange.Height = 155.905511811
-    Selection.ShapeRange.Height = 153.0708661417
-    Selection.ShapeRange.Height = 150.2362204724
-    Selection.ShapeRange.Height = 147.4015748031
-    Selection.ShapeRange.Height = 144.5669291339
-    Selection.ShapeRange.Height = 141.7322834646
-    Selection.ShapeRange.Height = 138.8976377953
-    Selection.ShapeRange.Height = 136.062992126
-    Selection.ShapeRange.Height = 133.2283464567
-    Selection.ShapeRange.Height = 130.3937007874
-    Selection.ShapeRange.Height = 127.5590551181
-    Selection.ShapeRange.Height = 124.7244094488
-    Selection.ShapeRange.Height = 121.8897637795
-    Selection.ShapeRange.Height = 119.0551181102
-    Selection.ShapeRange.Height = 116.2204724409
-    Selection.ShapeRange.Height = 113.3858267717
-    Selection.ShapeRange.Height = 110.5511811024
-    Selection.ShapeRange.Width = 238.1102362205
-    Selection.ShapeRange.Width = 235.2755905512
-    Selection.ShapeRange.Width = 232.4409448819
-    Selection.ShapeRange.Width = 229.6062992126
-    Selection.ShapeRange.Width = 226.7716535433
-    Selection.ShapeRange.Width = 223.937007874
-    Selection.ShapeRange.Width = 221.1023622047
-    Selection.ShapeRange.Width = 218.2677165354
-    Selection.ShapeRange.Width = 215.4330708661
-    Selection.ShapeRange.Width = 212.5984251969
-    Selection.ShapeRange.Width = 209.7637795276
-    Selection.ShapeRange.Width = 206.9291338583
-    Selection.ShapeRange.Width = 204.094488189
-    Selection.ShapeRange.Width = 201.2598425197
-    Selection.ShapeRange.Width = 198.4251968504
-    Selection.ShapeRange.Width = 195.5905511811
-    Selection.ShapeRange.Width = 192.7559055118
-    Selection.ShapeRange.Width = 189.9212598425
-    Selection.ShapeRange.Width = 187.0866141732
-    Selection.ShapeRange.Width = 184.2519685039
-    Selection.ShapeRange.Width = 181.4173228346
-    Selection.ShapeRange.Width = 178.5826771654
-    Selection.ShapeRange.Width = 175.7480314961
-    Selection.ShapeRange.Width = 172.9133858268
-    Selection.ShapeRange.Width = 170.0787401575
-    Selection.ShapeRange.Width = 167.2440944882
-    Selection.ShapeRange.Width = 164.4094488189
-    Selection.ShapeRange.Width = 161.5748031496
-    Selection.ShapeRange.Width = 158.7401574803
-    Selection.ShapeRange.Width = 155.905511811
-    Selection.ShapeRange.Width = 153.0708661417
-    Selection.ShapeRange.Width = 150.2362204724
-    Selection.ShapeRange.Width = 147.4015748031
-    Selection.ShapeRange.Width = 144.5669291339
-    Selection.ShapeRange.Width = 141.7322834646
-    Selection.ShapeRange.Width = 138.8976377953
-    Selection.ShapeRange.Width = 136.062992126
-    Selection.ShapeRange.Width = 133.2283464567
-    Selection.ShapeRange.Width = 130.3937007874
-    Selection.ShapeRange.Width = 127.5590551181
-    Selection.ShapeRange.Width = 124.7244094488
-    Selection.ShapeRange.Width = 121.8897637795
-    Selection.ShapeRange.Width = 119.0551181102
-    Selection.ShapeRange.Width = 116.2204724409
-    Selection.ShapeRange.Width = 113.3858267717
-    Selection.ShapeRange.Width = 110.5511811024
-    Selection.ShapeRange.Width = 107.7165354331
-    Selection.ShapeRange.Width = 104.8818897638
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
-    Selection.ShapeRange.IncrementTop 0.6522047244
+    
+    'Taglia l'immagine in base al fattore di larghezza passato in ingresso
+    If HCrop <> 0 Then
+        ImageWidth = MyImage.Width
+        'Le operazioni che seguono sono copiate e adattate da una registrazione macro, non ne ho comprensione
+        'completa ma funziona
+        MyImage.LockAspectRatio = msoFalse
+        MyImage.IncrementLeft ImageWidth * HCrop
+        MyImage.ScaleWidth HCrop, msoFalse, msoScaleFromTopLeft
+        MyImage.PictureFormat.Crop.PictureWidth = ImageWidth
+        MyImage.PictureFormat.Crop.PictureOffsetX = ImageWidth * HCrop / 2
+        'Sposta leggermente l'immagine dai bordi della cella
+        MyImage.IncrementTop 1
+        MyImage.IncrementLeft -0.5
+        'Blocca nuovamente le proporzioni
+        MyImage.LockAspectRatio = msoTrue
+      
+    End If
+   
 End Sub
