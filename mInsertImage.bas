@@ -18,6 +18,9 @@ Attribute PasteWPSImageAndData.VB_ProcData.VB_Invoke_Func = "m\n14"
 
 'Attenzione: fa uso del modulo mRegexUtils creato da me che deve essere inserito nel file
 
+Dim SourceWorkbookName As String
+Dim SourceWorkbook As Excel.Workbook
+Dim SourceSheet As Excel.Worksheet
 Dim SourceSheetName As String, SourceLookUpColumnName As String
 Dim SourceValueColumnName As String 'Per l'immagine
 Dim SourceValue2ColumnName As String 'Per i dati del cianfrino
@@ -45,17 +48,31 @@ Dim FirstSelectedRow As Integer, LastSelectedRow As Integer
 '************
 '**SETTINGS**
 '************
-SourceSheetName = "WPS"
-SourceLookUpColumnName = "wps_number"
-SourceValueColumnName = "joint_sketch_file"
-SourceValue2ColumnName = "joint_sketch_text_left"
-ImageFolderPath = "J:\180139-CMA_Spa-COLLABORAZIONE\PQR_e_WPS\JointSketchRepository\"
+    SourceWorkbookName = "Elenco_PQR_CMA_Spa.xlsm" 'NB: deve essere aperto perchè tutto funzioni
+    SourceSheetName = "WPS"
+    SourceLookUpColumnName = "wps_number"
+    SourceValueColumnName = "joint_sketch_file"
+    SourceValue2ColumnName = "joint_sketch_text_left"
+    ImageFolderPath = "J:\180139-CMA_Spa-COLLABORAZIONE\PQR_e_WPS\JointSketchRepository\"
+    
+    'Per la destinazione è i nomi di colonna sono complicati, per cui è sufficiente inserirne una
+    'parte poi con le regular expression troverà la colonna corrispondente
+    TargetSheetName = "H217-21" 'E' solo una parte del nome, verrà confrontato con l'activesheet
+    TargetLookUpColumnName = "WPS-Nr."
+    TargetColumnName = "weld details"
+'*****************
+'**FINE SETTINGS**
+'*****************
 
-'Per la destinazione è i nomi di colonna sono complicati, per cui è sufficiente inserirne una
-'parte poi con le regular expression troverà la colonna corrispondente
-TargetSheetName = "H217-21" 'E' solo una parte del nome, verrà confrontato con l'activesheet
-TargetLookUpColumnName = "WPS-Nr."
-TargetColumnName = "weld details"
+'---------------------------------------------------------------
+'-----DI SOLITO NON BISOGNA MODIFICARE CODICE DA QUI IN POI-----
+'---------------------------------------------------------------
+
+'****************************
+'**Definisce il SourceSheet**
+'****************************
+Set SourceWorkbook = Excel.Workbooks(SourceWorkbookName)
+Set SourceSheet = SourceWorkbook.Sheets(SourceSheetName)
 
 '****************************
 '**Individua il TargetSheet**
@@ -100,9 +117,9 @@ End If
 '****************
 '**ELABORAZIONE**
 '****************
-Set SourceLookUpColumn = Sheets(SourceSheetName).ListObjects(1).ListColumns(SourceLookUpColumnName).DataBodyRange
-Set SourceValueColumn = Sheets(SourceSheetName).ListObjects(1).ListColumns(SourceValueColumnName).DataBodyRange
-Set SourceValue2Column = Sheets(SourceSheetName).ListObjects(1).ListColumns(SourceValue2ColumnName).DataBodyRange
+Set SourceLookUpColumn = SourceSheet.ListObjects(1).ListColumns(SourceLookUpColumnName).DataBodyRange
+Set SourceValueColumn = SourceSheet.ListObjects(1).ListColumns(SourceValueColumnName).DataBodyRange
+Set SourceValue2Column = SourceSheet.ListObjects(1).ListColumns(SourceValue2ColumnName).DataBodyRange
 
 Set TargetTableHeader = TargetSheet.ListObjects(1).HeaderRowRange
 For Each MyCell In TargetTableHeader.Cells
@@ -157,7 +174,7 @@ Attribute InsertImageInCell.VB_ProcData.VB_Invoke_Func = "m\n14"
 'HCrop e VCrop sono Horizontal Crop e Vertical Crop
 
     Dim CellHeight As Single, CellWidth As Single
-    Dim MyImage As ShapeRange
+    Dim MyImage As Shape
     Dim ImageWidth As Single
     
     CellHeight = TargetCell.Height
@@ -165,10 +182,17 @@ Attribute InsertImageInCell.VB_ProcData.VB_Invoke_Func = "m\n14"
     
     'Seleziona la cella
     TargetCell.Select
-    'Inserisce l'immagine
-    ActiveSheet.Pictures.Insert(ImagePath).Select
+    'Inserisce l'immagine e ne prende il riferimento
+    Set MyImage = ActiveSheet.Shapes.AddPicture( _
+        FileName:=ImagePath, _
+        LinkToFile:=msoFalse, _
+        SaveWithDocument:=msoTrue, _
+        Left:=TargetCell.Left, _
+        Top:=TargetCell.Top, _
+        Width:=-1, _
+        Height:=-1)
+    
     'Ridimensiona l'immagine sulla base dell'altezza della cella
-    Set MyImage = Selection.ShapeRange
     MyImage.Height = CellHeight
     'Se l'immagine è più larga della cella, allora la ridimensiona anche in base alla larghezza della cella
     If MyImage.Width > CellWidth Then
