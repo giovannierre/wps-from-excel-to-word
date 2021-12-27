@@ -26,13 +26,13 @@ Next p
 
 For Each p In PropertyName
  If IsInCollection(ExistingProperties, p) Then
-    TargetDocument.CustomDocumentProperties(p).Value = PropertyValue(p)
+    TargetDocument.CustomDocumentProperties(p).value = PropertyValue(p)
   Else
     TargetDocument.CustomDocumentProperties.Add _
         Name:=p, _
         LinkToContent:=False, _
         Type:=msoPropertyTypeString, _
-        Value:=PropertyValue(p)
+        value:=PropertyValue(p)
     If ShowPropertyList Then
         AddedProperty(UBound(AddedProperty)) = p
         ReDim Preserve AddedProperty(1 To (UBound(AddedProperty) + 1))
