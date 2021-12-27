@@ -73,14 +73,20 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         NAMED_CELL_FOR_TEMPLATE_PATH, _
         NAMED_CELL_FOR_PDF_EXPORT_PATH, _
         NAMED_CELL_FOR_WORD_EXPORT_PATH As String
-    
     Dim TABLE_FIELD_FOR_IMAGE_FILENAME As String
     Dim DirToCheck As String
     Dim DirSplit As Variant
-    
+    Dim cc As ContentControl
+    Dim ImageFilePath As String
+    Dim DesiredHeight, DesiredWidth As Single
+    Dim FactorH, FactorW, Factor As Single
+        
     On Error GoTo ErrHandler
-    
-    '****SETTINGS****
+
+'##################################################################
+'               ************
+'               **SETTINGS**
+'               ************
     'Dimensioni massime immagine giunto, in cm
     IMAGE_HEIGHT = 3.5
     IMAGE_WIDTH = 8.3
@@ -91,7 +97,12 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     NAMED_CELL_FOR_WORD_EXPORT_PATH = "SaveWordPath"
     'Nomi di alcuni campi "speciali":
     TABLE_FIELD_FOR_IMAGE_FILENAME = "joint_sketch_file"
+'             **FINE SETTINGS**
+'##################################################################
     
+'********************
+'**LETTURA DEI DATI**
+'********************
     'Definisce l'oggeto ListObject (tabella di Excel) sul quale lavorare
     Set MyTable = MySheet.ListObjects(1)
     
@@ -112,7 +123,11 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         PropertyValue.Add key:=MyTable.HeaderRowRange.Columns(MyCell.Column).Text, _
                           Item:=Replace(MyCell.Text, Chr(10), Chr(13)) 'la sostituzione serve per fare andare a capo correttamente word
     Next
-         
+   
+'**********************
+'**SCRITTURA DEI DATI**
+'**********************
+     
     'Seleziona il file di template del documento Word dalla cella NAMED_CELL_FOR_TEMPLATE_PATH oppure, _
     'se vuoto, lo fa scegliere all'utente
     TargetDocumentPath = Range(NAMED_CELL_FOR_TEMPLATE_PATH)
@@ -147,10 +162,11 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
     'delle CustomProperties
     Call CreateCustomProperties(TargetDocument, PropertyName, PropertyValue)
     
-    'Inserisce l'immagine mediante un content control di tipo Picture
-    Dim cc As ContentControl
-    Dim ImageFilePath As String
+'*****************************
+'**INSERIMENTO DELL'IMMAGINE**
+'*****************************
     
+    'Inserisce l'immagine mediante un content control di tipo Picture
     'Se la cella nel campo TABLE_FIELD_FOR_IMAGE_FILENAME contiene i ":" (due punti) significa che è
     'indicato il percorso completo e si tiene buono quello, altrimenti si aggiunge il path specificato
     'nella cella NAMED_CELL_FOR_IMAGE_PATH
@@ -166,13 +182,10 @@ Attribute read_wps_data.VB_ProcData.VB_Invoke_Func = "w\n14"
         End If
         TargetDocument.InlineShapes.AddPicture _
             FileName:=ImageFilePath, _
-            linktofile:=False, Range:=cc.Range
+            LinkToFile:=False, Range:=cc.Range
         
         'Riconsidera l'oggetto per ridimensionarlo:
         Set cc = TargetDocument.ContentControls(1)
-        
-        Dim DesiredHeight, DesiredWidth As Single
-        Dim FactorH, FactorW, Factor As Single
         
         DesiredHeight = Application.CentimetersToPoints(IMAGE_HEIGHT)
         DesiredWidth = Application.CentimetersToPoints(IMAGE_WIDTH)
